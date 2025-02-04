@@ -1,0 +1,1 @@
+-- Initial PostgreSQL schema for the database
