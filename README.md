@@ -32,3 +32,30 @@ POSTGRES_PORT=5432
 3. In another terminal, `cd frontend` and run `npm run dev` to start the frontend
 
 Information for running tests and the web scraper TBD
+
+## Professor Ratings
+Currently, a professor is ranked on a $[0, 5.0]$ scale for a paticular course. The formula for a profesors rating in a paticular course is as follows:
+
+$$
+p_\text{avg} = \frac{ \sum_{i=1}^{n} \left(r_\text{quality} \times w_\text{quality}) \right(r_\text{difficulty} \times w_\text{difficulty} )  } {n}
+$$
+
+$$
+\text{professor course rating} = p_\text{avg} \times w_\text{avg} + p_\text{quality} \times w_\text{quality} + p_\text{difficulty} \times w_\text{difficulty}
+$$
+
+Where:
+- $w_\text{avg} = 0.6$
+- $w_\text{quality} = 0.3$
+- $w_\text{difficulty} = 0.1$
+- $w_\text{quality} = 0.7$
+- $w_\text{difficulty} = 0.3$
+- $r_\text{quality}$ is the rating given by a student for the quality of the professor $[0, 5.0]$
+- $r_\text{difficulty}$ is the rating given by a student for the difficulty of the professor $[0, 5.0]$
+- $p_\text{quality}$ is the rate my professor quality rating for a professor $[0, 5.0]$
+- $p_\text{difficulty}$ is the rate my professor difficulty rating for a professor $[0, 5.0]$
+
+
+
+
+
