@@ -1,6 +1,6 @@
 from dataclasses import dataclass
 
-from schema.models.util import Rating
+from schema.models import Rate
 
 
 @dataclass(frozen=True)
@@ -8,7 +8,7 @@ class Rating:
     id: int
     professor_id: int
     course_id: int
-    rating: Rating
-    rmp_quality: Rating
-    rmp_difficulty: Rating
+    rating: Rate
+    rmp_quality: Rate
+    rmp_difficulty: Rate
     rmp_comment: str

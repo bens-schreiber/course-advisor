@@ -17,7 +17,7 @@ class __BoundedValue(Generic[T]):
 
 
 @dataclass(frozen=True)
-class Rating(__BoundedValue[float]):
+class Rate(__BoundedValue[float]):
     def __post_init__(self):
         super().__init__(self.value, 0.0, 5.0)
 

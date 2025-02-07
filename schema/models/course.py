@@ -1,5 +1,6 @@
 from dataclasses import dataclass
-from schema.models.util import ClassLevel, Credit
+
+from schema.models import ClassLevel, Credit
 
 
 @dataclass(frozen=True)
