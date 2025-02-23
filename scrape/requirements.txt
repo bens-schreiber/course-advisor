@@ -1,5 +1,0 @@
-beautifulsoup4
-pytest
-python-dotenv
-apscheduler # Scheduler for the scraper job
-psycopg # PostgreSQL driver

@@ -14,9 +14,8 @@ Requirements:
 2. `cd` into the repository
 3. In the project root, `python -m venv .venv` to create a virtual environment
 4. `source .venv/bin/activate` to activate the virtual environment
-5. `pip install -r ./api/requirements.txt` to install the required packages for the API
-6. `pip install -r ./scrape/requirements.txt` to install the required packages for the scraper
-7. `cd frontend` and run `npm install` to install the required packages for the frontend
+5. `pip install -r ./backend/requirements.txt` to install the required python packages
+6. `cd frontend` and run `npm install` to install the required packages for the frontend
 
 Then, you'll want to run `touch .env` in the project root and add the following environment variables:
 ```bash
@@ -28,10 +27,11 @@ POSTGRES_PORT=5432
 
 ### Running the application
 1. In the project root, `docker-compose up` to start the database
-2. In another terminal, in the project root, run `python ./api/run.py` to start the API
+2. In another terminal, in the project root, run `python -m backend --app` to start the API
 3. In another terminal, `cd frontend` and run `npm run dev` to start the frontend
 
-Information for running tests and the web scraper TBD
+### Running the scraper
+TODO
 
 ### Postgres
 I (Ben Schreiber) haven't put in a tool for viewing postgres, so just go into the Docker exec and run:

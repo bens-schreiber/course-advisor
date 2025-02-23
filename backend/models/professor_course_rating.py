@@ -1,6 +1,7 @@
 from dataclasses import dataclass
+from datetime import datetime
 
-from schema.models import Rate
+from backend.models import Rate
 
 
 @dataclass(frozen=True)
@@ -9,4 +10,5 @@ class ProfessorCourseRating:
     professor_id: int
     course_id: int
     rating: Rate
-    course_rmp_quality: Rate
+    created_at: datetime
+    updated_at: datetime
