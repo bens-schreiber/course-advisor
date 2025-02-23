@@ -1,7 +1,7 @@
 from dataclasses import dataclass
 from datetime import datetime
 
-from schema.models import Rate
+from backend.models import Rate
 
 
 @dataclass(frozen=True)

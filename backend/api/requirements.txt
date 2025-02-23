@@ -1,4 +1,0 @@
-flask
-psycopg[binary] # PostgreSQL driver
-pytest
-python-dotenv
