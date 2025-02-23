@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 from schema.models import ClassLevel, Credit
 
@@ -9,3 +10,5 @@ class Course:
     name: str
     credits: Credit
     level: ClassLevel
+    created_at: datetime
+    updated_at: datetime

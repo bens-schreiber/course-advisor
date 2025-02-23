@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+from datetime import datetime
 
 from schema.models import Rate
 
@@ -9,4 +10,5 @@ class ProfessorCourseRating:
     professor_id: int
     course_id: int
     rating: Rate
-    course_rmp_quality: Rate
+    created_at: datetime
+    updated_at: datetime
