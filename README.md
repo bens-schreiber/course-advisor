@@ -33,29 +33,45 @@ POSTGRES_PORT=5432
 
 Information for running tests and the web scraper TBD
 
+### Postgres
+I (Ben Schreiber) haven't put in a tool for viewing postgres, so just go into the Docker exec and run:
+```bash
+docker exec -it course-advisor-postgres psql -U ${POSTGRES_USER} -d ${POSTGRES_DB}
+```
+
 ## Professor Ratings
-Currently, a professor is ranked on a $[0, 5.0]$ scale for a paticular course. The formula for a profesors rating in a paticular course is as follows:
+A professor is ranked on a $[0, 5.0]$ scale for a paticular course. The formula for a profesors rating in a paticular course is as follows:
 
+A rating on RateMyProfessor gives two values on the same $[0, 5.0]$ scale:
+- `quality` 
+- `difficulty`
+
+As well as the value
+- `would take again` (percentage of students who would take the professor again)
+
+Given these ratings, we want to calculate
+1. The overall rating of the professor in a particular course $R(P, A)$
+2. The overall rating of the professor $R(P)$
+
+This will be done using our own formula.
+
+Given 
+- $A = \{  (q, d) \}$ a set of ratings (quality, difficulty)
+- $C = \{ A \}$ a set of ratings for a course
+- $P = (wta, C)$ = a professor with a $wta$ and set of courses $C$
+ - $w_q + w_d + w_{wta} = 1 $
+
+$$ R(P,A) = \frac{\sum_{(q,d) \in A} (q \cdot w_q + (5-d) \cdot w_d) + 5 \cdot P.wta \cdot w_{wta}}{w_q + w_d + w_{wta}} 
 $$
-p_\text{avg} = \frac{ \sum_{i=1}^{n} \left(r_\text{quality} \times w_\text{quality}) \right(r_\text{difficulty} \times w_\text{difficulty} )  } {n}
+
+It would follow that
+$$
+R(P) = \frac{\sum_{A \in P.C} R(P, A)}{|P.C|}
 $$
 
-$$
-\text{professor course rating} = p_\text{avg} \times w_\text{avg} + p_\text{quality} \times w_\text{quality} + p_\text{difficulty} \times w_\text{difficulty}
-$$
-
-Where:
-- $w_\text{avg} = 0.6$
-- $w_\text{quality} = 0.3$
-- $w_\text{difficulty} = 0.1$
-- $w_\text{quality} = 0.7$
-- $w_\text{difficulty} = 0.3$
-- $r_\text{quality}$ is the rating given by a student for the quality of the professor $[0, 5.0]$
-- $r_\text{difficulty}$ is the rating given by a student for the difficulty of the professor $[0, 5.0]$
-- $p_\text{quality}$ is the rate my professor quality rating for a professor $[0, 5.0]$
-- $p_\text{difficulty}$ is the rate my professor difficulty rating for a professor $[0, 5.0]$
-
-
-
+where (at this time)
+- $w_q = 0.5$
+- $w_d = 0.3$
+- $w_{wta} = 0.2$
 
 
