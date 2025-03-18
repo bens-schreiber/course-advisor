@@ -1,24 +1,38 @@
 <!DOCTYPE html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Course Advisor</title>
-    <link href="styles.css" rel="stylesheet" />
-    <script
-      src="https://unpkg.com/htmx.org@2.0.4"
-      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
-      crossorigin="anonymous"
-    ></script>
-  </head>
-  <body>
-    <div
-      id="value-display"
-      hx-get="/api/hello"
-      hx-trigger="load"
-      hx-swap="innerHTML"
-    >
-      Loading...
+    <!-- HTMX -->
+    <script src="https://unpkg.com/htmx.org@2.0.4" crossorigin="anonymous"></script>
+    <!-- Alpine.js -->
+    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
+</head>
+<body>
+    <h1>Course Advisor</h1>
+
+    <!-- Form to Add a New Course (Hardcoded Course Name in Dropdown) -->
+    <div x-data="{ selectedCourse: '' }">
+        <form hx-post="/api/v1/coursenames"
+              hx-target="#course-list"
+              hx-swap="innerHTML">
+    
+            <!-- Hardcoded Dropdown for Course Name -->
+            <label>Course Name:
+                <select x-model="selectedCourse" required>
+                    <option value="" disabled selected>Select a course</option>
+                    <option value="CPT S 101">CPT S 101</option>
+                    <option value="HIST 101">HIST 101</option>
+                    <option value="BIO 100">CPT S 355</option>
+                    <option value="MATH 453">CPT S 360</option>
+                </select>
+            </label><br> 
+            
+            <button type="submit">Search Criteria</button>
+        </form>
     </div>
-  </body>
+</body>
 </html>
+
+

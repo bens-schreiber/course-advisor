@@ -20,6 +20,11 @@ def hello():
         res = cur.fetchone()[0]
     return f"Hello world from Flask! And here's a message from Postgres: {res}"
 
+@app.route("/fuck")
+def fuck():
+    return f"fuck this"
+
+
 
 def convert_record(record):  # datetime objects are not json serializable
     record_dict = asdict(record)
@@ -53,3 +58,12 @@ def get_ucores():
         rows = cur.fetchall()
         ucores = [Ucore(*row) for row in rows]
         return json.dumps([convert_record(ucore) for ucore in ucores])
+    
+@app.route("/api/v1/coursenames", methods=["GET"])
+def get_coursenames():
+    with cursor() as cur:
+        cur.execute("select name from courses")
+        rows = cur.fetchall()
+        course_names = [row[0] for row in rows]
+        return json.dumps(course_names)
+
