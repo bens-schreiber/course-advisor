@@ -1,6 +1,5 @@
 from dataclasses import dataclass
 from datetime import date, datetime
-import time
 import traceback
 from selenium import webdriver
 from selenium.webdriver.common.by import By
@@ -17,7 +16,7 @@ RMP_URL_PROFESSOR = f"https://www.ratemyprofessors.com/professor/{{id}}"
 SQLITE_DB = "ids.db"
 
 
-def __driver() -> webdriver.Chrome:
+def __driver() -> webdriver.Safari:
     return webdriver.Safari()
 
 
@@ -47,7 +46,7 @@ class _Professor:
     department: str
 
 
-def run_scrape_all():
+def run_scrape_db_seed():
     """
     Using the professor ids stored from a `run_scrape_pids` call, this function will scrape all comments from every professor,
     storing all professors, departments, comments, ratings, etc to the postgres db.
@@ -146,10 +145,14 @@ def run_scrape_all():
         finally:
             return comments
 
+    def scrape_prof(d, id) -> _Professor:
+        pass  # TODO: Scrape the professor's name and department from the page
+
     d = __driver()
     ids = professor_ids()
 
     for id in ids:
+        # prof = scrape_prof(d, id)
         comments = scrape_prof_comments(d, id)
         print(f"Scraped {len(comments)} comments for {id}.")
 
@@ -159,11 +162,10 @@ def run_scrape_all():
         # 3. Course
         # 4. Comment
         #
-        # Note that these values could already exist in the database, so we need to check for duplicates. Department, professor, course should be unique,
-        # and we should never add a comment in that is prior to the latest comment (from the databases) date (allowing us to not check every single comment for duplicates).
+        # Wipe the entire database table before inserting new data.
 
     # Once all of this is done, we need to compute the average quality and difficulty for each professor, and store it in the database.
-    # Probably just use SQL.
+    # Use SQL or dynamically calculate the required sums per scrape, inputting into the scoring functions described in `README.md`.
 
 
 def run_scrape_pids():
