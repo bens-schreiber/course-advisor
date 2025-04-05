@@ -55,27 +55,22 @@ elif args.scrape_pids:
     run_scrape_pids()
 
 elif args.scrape_db_seed:
-    run_scrape_db_seed()
-
-elif args.scrape_ucores:
-    raise NotImplementedError("Scraping ucores is not implemented yet.")
-
-elif args.init_db:
     print(
         "This action will clear the database. Are you sure you want to do this? (y/n)"
     )
     match input().lower():
         case "y":
-            print("Initializing the database...")
-            # TODO: run_scrape_ucores()
-            run_scrape_pids()
             run_scrape_db_seed()
-        case "n":
-            print("Exiting...")
-            exit()
         case _:
-            print("Invalid input. Exiting...")
             exit()
+
+elif args.scrape_ucores:
+    raise NotImplementedError("Scraping ucores is not implemented yet.")
+
+elif args.init_db:
+    # TODO: run_scrape_ucores()
+    run_scrape_pids()
+    run_scrape_db_seed()
 
 
 else:
