@@ -1,5 +1,5 @@
 import json
-from flask import g
+from flask import request
 from backend.api import app, cursor
 from dataclasses import asdict
 
@@ -29,6 +29,7 @@ def convert_record(record):  # datetime objects are not json serializable
     return record_dict
 
 
+# Returns all courses
 @app.route("/api/v1/courses", methods=["GET"])
 def get_courses():
     with cursor() as cur:
@@ -37,7 +38,7 @@ def get_courses():
         courses = [Course(*row) for row in rows]
         return json.dumps([convert_record(course) for course in courses])
 
-
+# Returns all departments
 @app.route("/api/v1/departments", methods=["GET"])
 def get_departments():
     with cursor() as cur:
@@ -46,7 +47,7 @@ def get_departments():
         departments = [Department(*row) for row in rows]
         return json.dumps([convert_record(department) for department in departments])
 
-
+# Returns all ucores
 @app.route("/api/v1/ucores", methods=["GET"])
 def get_ucores():
     with cursor() as cur:
@@ -55,11 +56,12 @@ def get_ucores():
         ucores = [Ucore(*row) for row in rows]
         return json.dumps([convert_record(ucore) for ucore in ucores])
     
-
-@app.route("api/v1/top_professors", methods=["GET"])
+# Returns the top 3 professors for a specific subject and class level
+# /api/v1/top_professors?subject={department name}&class_level={level}
+@app.route("/api/v1/top_professors", methods=["GET"])
 def get_top_professors():
-    subject = g.args.get("subject")
-    class_level = g.args.get("class_level")
+    subject = request.args.get("subject")
+    class_level = request.args.get("class_level")
 
     if not subject or not class_level:
         return json.dumps({"error": "Both 'subject' and 'class_level' parameters are required!"}), 400
@@ -89,17 +91,20 @@ def get_top_professors():
         if not course_ids:
             return json.dumps({"error": "No courses found for the given subject and class level."}), 404
         
+        # Create a SQL-safe list of placeholders for the IN clause
+        placeholders = ','.join(['%s'] * len(course_ids))
+
         # Get top 3 professors based on their cumulative ratings for the courses
-        cur.execute("""
+        cur.execute(f"""
             SELECT p.id, p.name, p.department_id, AVG(r.rating) as avg_rating
             FROM professors p
             JOIN professor_cumulative_ratings r ON p.id = r.professor_id
             JOIN professor_course_ratings pcr ON p.id = pcr.professor_id
-            WHERE p.department_id = %s AND pcr.course_id IN (%s)
+            WHERE p.department_id = %s AND pcr.course_id IN ({placeholders})
             GROUP BY p.id, p.name, p.department_id
             ORDER BY avg_rating DESC
             LIMIT 3
-        """, (department_id, ','.join(map(str, course_ids))))
+        """, [department_id] + course_ids)
 
         rows = cur.fetchall()
         if not rows:
@@ -107,45 +112,39 @@ def get_top_professors():
         
         # Create Professor objects from the result
         professors = [Professor(id=row[0], department_id=row[2], name=row[1], created_at=None, updated_at=None) for row in rows]
-        return json.dumps([convert_record(professor) for professor in professors])
+        return json.dumps([asdict(professor) for professor in professors])
 
-
-@app.route("api/v1/top_classes", methods=["GET"])
+# Returns the top 3 classes for a specific credit amount, class level, subject, and ucore (optional)
+# /api/v1/top_classes?credits={credit amount}&class_level={level}&subject={department name}&ucore={ucore id}
+@app.route("/api/v1/top_classes", methods=["GET"])
 def get_top_classes():
-    credits = g.args.get("credits")
-    class_level = g.args.get("class_level")
-    subject = g.args.get("subject")
-    ucore_id = g.args.get("ucore") # optional
+    credits = request.args.get("credits")
+    class_level = request.args.get("class_level")
+    subject = request.args.get("subject")
+    ucore_id = request.args.get("ucore") # optional
+
+    # Validate required params
+    if not all([credits, class_level, subject]):
+        return {"error": "Missing required query parameters."}, 400
 
     # Base query
     query = """
         SELECT c.id, c.name, c.credits, c.level, AVG(pcr.rating) as avg_rating
         FROM courses c
         LEFT JOIN professor_course_ratings pcr ON c.id = pcr.course_id
-        WHERE 1 = 1
+        LEFT JOIN course_departments cd ON c.id = cd.course_id
+        LEFT JOIN departments d ON cd.department_id = d.id
+        LEFT JOIN course_ucores cu ON c.id = cu.course_id
+        WHERE c.credits = %s
+        AND c.level = %s
+        AND d.name = %s
     """
 
-    # Add filters based on available parameters
-    params = []
+    # Add ucore if available
+    params = [credits, class_level, subject]
 
-    if credits:
-        query += " AND c.credits = %s"
-        params.append(credits)
-    if class_level:
-        query += " AND c.level = %s"
-        params.append(class_level)
-    if subject:
-        query += """
-            JOIN course_departments cd ON c.id = cd.course_id
-            JOIN departments d ON cd.department_id = d.id
-            WHERE d.name = %s
-        """
-        params.append(subject)
     if ucore_id:
-        query += """
-            JOIN course_ucore cu ON c.id = cu.course_id
-            WHERE cu.ucore_id = %s
-        """
+        query += " AND cu.ucore_id = %s"
         params.append(ucore_id)
 
     query += """
@@ -158,6 +157,8 @@ def get_top_classes():
     with cursor() as cur:
         cur.execute(query, params)
         rows = cur.fetchall()
-        courses = [Course(*row) for row in rows]
-
-        return json.dumps([convert_record(course) for course in courses])
+        if not rows:
+            return json.dumps({"message": "No top classes found for the given parameters."}), 404
+        
+        courses = [Course(id=row[0], name=row[1], credits=row[2], level=row[3], created_at=None, updated_at=None) for row in rows]
+        return json.dumps([asdict(course) for course in courses])
