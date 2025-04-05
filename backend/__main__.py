@@ -1,6 +1,7 @@
 import argparse
 from backend.api import app
 from backend.api import routes
+from backend.scrape import run_scrape_pids, run_scrape_all
 
 
 parser = argparse.ArgumentParser(
@@ -14,8 +15,14 @@ parser.add_argument(
 )
 
 parser.add_argument(
-    "--scraper",
-    help="Run the web scraper",
+    "--scrape_pids",
+    help="Scrapes all new professor ids from RateMyProfessors, storing to a local sqlite3 db",
+    action="store_true",
+)
+
+parser.add_argument(
+    "--scrape_all",
+    help="Scrapes all comments from the stored professor ids, storing all professors, departments, comments, ratings, etc to the postgres db",
     action="store_true",
 )
 
@@ -32,8 +39,11 @@ if args.app:
         raise NotImplementedError("Tests for the flask app are not implemented yet.")
     app.run(port=5000, debug=True)
 
-elif args.scraper:
-    raise NotImplementedError("The web scraper is not implemented yet.")
+elif args.scrape_pids:
+    run_scrape_pids()
+
+elif args.scrape_all:
+    run_scrape_all()
 
 else:
     parser.print_help()
