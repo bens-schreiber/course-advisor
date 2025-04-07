@@ -53,3 +53,10 @@ def get_ucores():
         rows = cur.fetchall()
         ucores = [Ucore(*row) for row in rows]
         return json.dumps([convert_record(ucore) for ucore in ucores])
+    
+@app.route("/api/v1/fake-route", methods=["GET"])
+def fake_route():
+    data = ["not", "yet", "implemented"]
+    # Generate an HTML list from the data
+    html_list = "".join([f"<li>{i + 1}. {item}</li>" for i, item in enumerate(data)])
+    return html_list
