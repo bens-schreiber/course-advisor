@@ -324,8 +324,6 @@ def run_scrape_ucores():
 
         # Iterate through each UCORE option
         for ucore_code in ucore_options:
-            print (ucore_options)
-            print(f"Scraping UCORE courses for {ucore_code}")
             logger.info(f"Scraping UCORE courses for {ucore_code}")
             
 
@@ -339,17 +337,23 @@ def run_scrape_ucores():
             courses = []
 
             for course_element in course_elements:
+                
+                # Find the header above the course element
+                department_header = course_element.find_element(By.XPATH, "preceding::h4[1]").text
+                department_code = department_header.split("(")[-1].strip(")").replace("_", "")
+                print(department_code)
+
                 course_header = course_element.find_element(By.CSS_SELECTOR, "span.course_header").text
                 course_data = course_element.find_element(By.CSS_SELECTOR, "span.course_data").text
 
                 # Parse the course header and data
-                course_id, ucore_designation, course_name = course_header.split(" ", 2)
+                course_id, _, course_name = course_header.split(" ", 2)
                 credits = course_data.split(" ")[0]  # Extract the credit value
 
                 # Create a UCoreCourse object and add it to the list
                 course = UCoreCourse(
                     course_id=course_id,
-                    ucore_designation=ucore_designation.strip("[]"),
+                    ucore_designation=department_code,
                     course_name=course_name.strip(),
                     credits=credits
                 )
@@ -378,12 +382,6 @@ def run_scrape_ucores():
         logger.info("WebDriver closed and scraping process completed")
            
         
-    
-                    
-
-            
-     
-
 
 def get_ucore_options(driver):
     """
