@@ -10,15 +10,100 @@
       integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
       crossorigin="anonymous"
     ></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
   </head>
   <body>
-    <div
-      id="value-display"
-      hx-get="/api/hello"
-      hx-trigger="load"
-      hx-swap="innerHTML"
-    >
-      Loading...
-    </div>
+
+    <main>
+      <div
+        x-data="{ items: [], selectedCourse: null }"
+        @htmx:after-request="items = JSON.parse($event.detail.xhr.responseText)"
+      >
+        
+        <!-- Trigger HTMX to fetch courses when the page loads -->
+        <div hx-get="/api/v1/courses" hx-trigger="load" hx-swap="none"></div>
+
+        <!-- Course Selection Form -->
+        <form 
+          hx-get="/api/v1/fake-route"
+          hx-target="#course-details"
+          hx-trigger="submit"
+        >
+          <!-- Title for the dropdown -->
+          <p><strong>Top 3 Professors</strong></p>
+        
+          <!-- Dropdown populated with courses -->
+          <select x-model="selectedCourse" name="courseId">
+            <template x-for="item in items" :key="item.id">
+              <option :value="item.id" x-text="item.name"></option>
+            </template>
+          </select>
+        
+          <button type="submit">Submit</button>
+        </form>
+        
+        <!-- Area to display the course details -->
+        <div id="course-details"></div>
+
+      </div>
+      <p><strong>Top Classes based on credits, class, and ucore</strong></p>
+      <select name="credits" class="form-select">
+        <option value="" disabled selected>Select credits</option>
+        <option value="2">2 Credits</option>
+        <option value="3">3 Credits</option>
+        <option value="4">4 Credits</option>
+      </select>
+
+      <select name="professors" class="form-select">
+        <option value="" disabled selected>Select a professor</option>
+        <option value="1">Dr. Alice Johnson</option>
+        <option value="2">Dr. Bob Smith</option>
+        <option value="3">Dr. Carol White</option>
+        <option value="4">Dr. David Brown</option>
+        <option value="5">Dr. Eve Davis</option>
+        <option value="5">Dr. Frank Wilson</option>
+      </select>
+
+    <select>
+      <option value="" disabled selected>Select a professor</option>
+      <option value="1">Dr. Alice Johnson</option>
+      <option value="2">Dr. Bob Smith</option>
+      <option value="3">Dr. Carol White</option>
+      <option value="4">Dr. David Brown</option>
+      <option value="5">Dr. Eve Davis</option>
+      <option value="6">Dr. Frank Wilson</option>
+    </select>
+
+    <select name="ucore" class="form-select">
+      <option value="" disabled selected>Select a UCORE category</option>
+      <option value="ctcre">CTCRE - Critical and Creative Thinking</option>
+      <option value="qsr">QSR - Quantitative Reasoning</option>
+      <option value="sci">SCI - Scientific Literacy</option>
+      <option value="inf">INF - Information Literacy</option>
+      <option value="comm">COMM - Communication</option>
+      <option value="divr">DIVR - Diversity</option>
+      <option value="depth">DBIL - Depth, Breadth, and Integration of Learning</option>
+    </select>
+    <button 
+    hx-get="/api/v1/fake-route" 
+    hx-target="#data-list" 
+    hx-swap="innerHTML" 
+    class="form-button"
+  >
+    Submit
+  </button>
+
+  <!-- Area to display the fetched data -->
+  <ul id="data-list" class="data-list">
+    <!-- Fetched data will be displayed here -->
+  </ul>
+       <div>
+
+       </div>
+    </main>
+
+    <footer>
+    </footer>
+
   </body>
 </html>
