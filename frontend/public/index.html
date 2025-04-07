@@ -1,38 +1,109 @@
 <!DOCTYPE html>
 <html lang="en">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
     <title>Course Advisor</title>
-    <!-- HTMX -->
-    <script src="https://unpkg.com/htmx.org@2.0.4" crossorigin="anonymous"></script>
-    <!-- Alpine.js -->
-    <script src="https://cdn.jsdelivr.net/npm/alpinejs@3.x.x/dist/cdn.min.js" defer></script>
-</head>
-<body>
-    <h1>Course Advisor</h1>
+    <link href="styles.css" rel="stylesheet" />
+    <script
+      src="https://unpkg.com/htmx.org@2.0.4"
+      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+      crossorigin="anonymous"
+    ></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
+  </head>
+  <body>
 
-    <!-- Form to Add a New Course (Hardcoded Course Name in Dropdown) -->
-    <div x-data="{ selectedCourse: '' }">
-        <form hx-post="/api/v1/coursenames"
-              hx-target="#course-list"
-              hx-swap="innerHTML">
-    
-            <!-- Hardcoded Dropdown for Course Name -->
-            <label>Course Name:
-                <select x-model="selectedCourse" required>
-                    <option value="" disabled selected>Select a course</option>
-                    <option value="CPT S 101">CPT S 101</option>
-                    <option value="HIST 101">HIST 101</option>
-                    <option value="BIO 100">CPT S 355</option>
-                    <option value="MATH 453">CPT S 360</option>
-                </select>
-            </label><br> 
-            
-            <button type="submit">Search Criteria</button>
+    <main>
+      <div
+        x-data="{ items: [], selectedCourse: null }"
+        @htmx:after-request="items = JSON.parse($event.detail.xhr.responseText)"
+      >
+        
+        <!-- Trigger HTMX to fetch courses when the page loads -->
+        <div hx-get="/api/v1/courses" hx-trigger="load" hx-swap="none"></div>
+
+        <!-- Course Selection Form -->
+        <form 
+          hx-get="/api/v1/fake-route"
+          hx-target="#course-details"
+          hx-trigger="submit"
+        >
+          <!-- Title for the dropdown -->
+          <p><strong>Top 3 Professors</strong></p>
+        
+          <!-- Dropdown populated with courses -->
+          <select x-model="selectedCourse" name="courseId">
+            <template x-for="item in items" :key="item.id">
+              <option :value="item.id" x-text="item.name"></option>
+            </template>
+          </select>
+        
+          <button type="submit">Submit</button>
         </form>
-    </div>
-</body>
+        
+        <!-- Area to display the course details -->
+        <div id="course-details"></div>
+
+      </div>
+      <p><strong>Top Classes based on credits, class, and ucore</strong></p>
+      <select name="credits" class="form-select">
+        <option value="" disabled selected>Select credits</option>
+        <option value="2">2 Credits</option>
+        <option value="3">3 Credits</option>
+        <option value="4">4 Credits</option>
+      </select>
+
+      <select name="professors" class="form-select">
+        <option value="" disabled selected>Select a professor</option>
+        <option value="1">Dr. Alice Johnson</option>
+        <option value="2">Dr. Bob Smith</option>
+        <option value="3">Dr. Carol White</option>
+        <option value="4">Dr. David Brown</option>
+        <option value="5">Dr. Eve Davis</option>
+        <option value="5">Dr. Frank Wilson</option>
+      </select>
+
+    <select>
+      <option value="" disabled selected>Select a professor</option>
+      <option value="1">Dr. Alice Johnson</option>
+      <option value="2">Dr. Bob Smith</option>
+      <option value="3">Dr. Carol White</option>
+      <option value="4">Dr. David Brown</option>
+      <option value="5">Dr. Eve Davis</option>
+      <option value="6">Dr. Frank Wilson</option>
+    </select>
+
+    <select name="ucore" class="form-select">
+      <option value="" disabled selected>Select a UCORE category</option>
+      <option value="ctcre">CTCRE - Critical and Creative Thinking</option>
+      <option value="qsr">QSR - Quantitative Reasoning</option>
+      <option value="sci">SCI - Scientific Literacy</option>
+      <option value="inf">INF - Information Literacy</option>
+      <option value="comm">COMM - Communication</option>
+      <option value="divr">DIVR - Diversity</option>
+      <option value="depth">DBIL - Depth, Breadth, and Integration of Learning</option>
+    </select>
+    <button 
+    hx-get="/api/v1/fake-route" 
+    hx-target="#data-list" 
+    hx-swap="innerHTML" 
+    class="form-button"
+  >
+    Submit
+  </button>
+
+  <!-- Area to display the fetched data -->
+  <ul id="data-list" class="data-list">
+    <!-- Fetched data will be displayed here -->
+  </ul>
+       <div>
+
+       </div>
+    </main>
+
+    <footer>
+    </footer>
+
+  </body>
 </html>
-
-

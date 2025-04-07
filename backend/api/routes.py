@@ -66,4 +66,13 @@ def get_coursenames():
         rows = cur.fetchall()
         course_names = [row[0] for row in rows]
         return json.dumps(course_names)
+    
+@app.route("/api/v1/fake-route", methods=["GET"])
+def fake_route():
+    data = ["not", "yet", "implemented"]
+    # Generate an HTML list from the data
+    html_list = "".join([f"<li>{i + 1}. {item}</li>" for i, item in enumerate(data)])
+    return html_list
+
+
 
