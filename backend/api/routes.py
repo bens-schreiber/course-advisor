@@ -1,5 +1,5 @@
 import json
-from flask import g
+from flask import g, request
 from backend.api import app, cursor
 from dataclasses import asdict
 
@@ -33,8 +33,8 @@ def get_courses():
     with cursor() as cur:
         cur.execute("select * from courses")
         rows = cur.fetchall()
-        courses = [Course(*row) for row in rows]
-        return json.dumps([convert_record(course) for course in courses])
+        courses = [{"id": row[0], "name": row[1]} for row in rows]
+        return json.dumps(courses)
 
 
 @app.route("/api/v1/departments", methods=["GET"])
@@ -53,3 +53,10 @@ def get_ucores():
         rows = cur.fetchall()
         ucores = [Ucore(*row) for row in rows]
         return json.dumps([convert_record(ucore) for ucore in ucores])
+    
+@app.route("/api/v1/fake-route", methods=["GET"])
+def fake_route():
+    data = ["not", "yet", "implemented"]
+    # Generate an HTML list from the data
+    html_list = "".join([f"<li>{i + 1}. {item}</li>" for i, item in enumerate(data)])
+    return html_list
