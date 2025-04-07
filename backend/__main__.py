@@ -1,7 +1,7 @@
 import argparse
 from backend.api import app
 from backend.api import routes
-from backend.scrape import run_scrape_pids, run_scrape_db_seed
+from backend.scrape import run_scrape_pids, run_scrape_db_seed,run_scrape_ucores
 
 
 parser = argparse.ArgumentParser(
@@ -65,10 +65,10 @@ elif args.scrape_db_seed:
             exit()
 
 elif args.scrape_ucores:
-    raise NotImplementedError("Scraping ucores is not implemented yet.")
+    run_scrape_ucores()
 
 elif args.init_db:
-    # TODO: run_scrape_ucores()
+    run_scrape_ucores()
     run_scrape_pids()
     run_scrape_db_seed()
 
