@@ -316,130 +316,73 @@ def run_scrape_ucores():
     try:
         # Get all UCORE options
         ucore_options = get_ucore_options(driver)
-        
-        for ucore_code, option_text in ucore_options:
-            logger.info(f"Found UCORE designation: {ucore_code} - {option_text}")
 
-        # Select the second option
-        ucore_code, option_text = ucore_options[1]
-        
-        logger.info(f"Processing UCORE designation: {ucore_code} - {option_text}")
-        
-        # Navigate directly to the UCORE page with the selected option
-        driver.get(f"{WSU_CATALOG_UCORE_URL}?ucore={ucore_code}")
-        
-        # Wait for results to load
-        WebDriverWait(driver, 10).until(
-            EC.presence_of_element_located((By.ID, "searchResults"))
-        )
-        
-        # Get all course results
-        course_elements = driver.find_elements(By.XPATH, "//div[@id='searchResults']//a")
-        
-        ucore_courses = []
-        for course_element in course_elements:
-            course_id = course_element.text.strip()
-            course_name = course_element.get_attribute("title").strip() if course_element.get_attribute("title") else ""
+        #remove first index of ""
+        ucore_options = ucore_options[1:]
+
+
+
+        # Iterate through each UCORE option
+        for ucore_code in ucore_options:
+            print (ucore_options)
+            print(f"Scraping UCORE courses for {ucore_code}")
+            logger.info(f"Scraping UCORE courses for {ucore_code}")
             
-            ucore_courses.append({
-                "course_id": course_id,
-                "ucore_designation": ucore_code,
-                "course_name": course_name,
-                "credits": "",  # Will be updated later
-                "created_at": datetime.now()
-            })
-        
-        logger.info(f"Found {len(course_elements)} courses for UCORE {ucore_code}")
-        
-        # Save UCORE courses to database
-        conn = sqlite3.connect(SQLITE_DB)
-        cursor = conn.cursor()
-        
-        for course in ucore_courses:
-            cursor.execute("""
-                INSERT OR REPLACE INTO ucore_courses 
-                (course_id, ucore_designation, course_name, credits, created_at) 
-                VALUES (?, ?, ?, ?, ?)
-            """, (
-                course["course_id"],
-                course["ucore_designation"],
-                course["course_name"],
-                course["credits"],
-                course["created_at"]
-            ))
-        
-        conn.commit()
-        logger.info(f"Saved {len(ucore_courses)} UCORE course designations to database")
-        
-        # Now get details for each course
-        logger.info("Starting to collect detailed course information")
-        
-        for course in ucore_courses:
-            try:
-                # Search for the specific course
-                driver.get(WSU_CATALOG_URL)
-                course_search = driver.find_element(By.ID, "course")
-                course_search.clear()
-                course_search.send_keys(course["course_id"])
-                
-                search_button = driver.find_element(By.ID, "searchButton")
-                search_button.click()
-                
-                # Wait for results
-                WebDriverWait(driver, 10).until(
-                    EC.presence_of_element_located((By.ID, "searchResults"))
+
+            # Navigate to the UCORE catalog page
+            driver.get(f"{WSU_CATALOG_UCORE_URL}/{ucore_code}")
+            logger.info(f"Navigated to {WSU_CATALOG_UCORE_URL}{ucore_code}")
+    
+
+            # Get the course list
+            course_elements = driver.find_elements(By.CSS_SELECTOR, "p.course")
+            courses = []
+
+            for course_element in course_elements:
+                course_header = course_element.find_element(By.CSS_SELECTOR, "span.course_header").text
+                course_data = course_element.find_element(By.CSS_SELECTOR, "span.course_data").text
+
+                # Parse the course header and data
+                course_id, ucore_designation, course_name = course_header.split(" ", 2)
+                credits = course_data.split(" ")[0]  # Extract the credit value
+
+                # Create a UCoreCourse object and add it to the list
+                course = UCoreCourse(
+                    course_id=course_id,
+                    ucore_designation=ucore_designation.strip("[]"),
+                    course_name=course_name.strip(),
+                    credits=credits
                 )
-                
-                # Find the course link and click it
-                course_links = driver.find_elements(By.XPATH, f"//div[@id='searchResults']//a[contains(text(), '{course['course_id']}')]")
-                if course_links:
-                    course_links[0].click()
-                    
-                    # Wait for course details to load
-                    WebDriverWait(driver, 10).until(
-                        EC.presence_of_element_located((By.CLASS_NAME, "courseblock"))
-                    )
-                    
-                    # Extract course details
-                    course_block = driver.find_element(By.CLASS_NAME, "courseblock")
-                    course_title = course_block.find_element(By.CLASS_NAME, "courseblocktitle").text
-                    
-                    # Extract credits
-                    if "Credits" in course_title:
-                        credits = course_title.split("Credits")[0].strip().split()[-1] + " Credits"
-                    else:
-                        # Try to find credits in the description
-                        desc = course_block.find_element(By.CLASS_NAME, "courseblockdesc").text
-                        if "credits" in desc.lower():
-                            credits_part = desc.lower().split("credits")[0].strip().split()[-1]
-                            credits = f"{credits_part} Credits"
-                        else:
-                            credits = "Unknown"
-                    
-                    # Update the database with course details
-                    cursor.execute("""
-                        UPDATE ucore_courses SET credits = ? WHERE course_id = ?
-                    """, (credits, course["course_id"]))
-                    
-                    logger.info(f"Updated course {course['course_id']} with credits: {credits}")
-                else:
-                    logger.warning(f"Could not find detailed page for course {course['course_id']}")
-            
-            except Exception as e:
-                logger.error(f"Error getting details for course {course['course_id']}: {e}")
-        
-        conn.commit()
-        conn.close()
-        logger.info("Completed scraping UCORE courses with details")
-        
-    except KeyboardInterrupt:
-        logger.info("Process interrupted by user")
+                courses.append(course)
+
+            logger.info(f"Scraped {len(courses)} courses for UCORE {ucore_code}")
+
+            # Save courses to the SQLite database
+            conn = sqlite3.connect(SQLITE_DB)
+            cursor = conn.cursor()
+
+            for course in courses:
+                cursor.execute("""
+                    INSERT OR REPLACE INTO ucore_courses (course_id, ucore_designation, course_name, credits, created_at)
+                    VALUES (?, ?, ?, ?, ?)
+                """, (course.course_id, course.ucore_designation, course.course_name, course.credits, course.created_at))
+
+            conn.commit()
+            conn.close()
+            logger.info(f"Saved {len(courses)} courses for UCORE {ucore_code} to the database")
     except Exception as e:
-        logger.error(f"An error occurred: {e}")
+        logger.error(f"An error occurred during scraping: {e}")
         traceback.print_exc()
     finally:
         driver.quit()
-        logger.info("UCORE scraping process completed")
+        logger.info("WebDriver closed and scraping process completed")
+           
+        
+    
+                    
+
+            
+     
 
 
 def get_ucore_options(driver):
