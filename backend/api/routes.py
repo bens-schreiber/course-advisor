@@ -46,12 +46,12 @@ def get_ucores():
 
 @app.route("/api/v1/professors/search", methods=["GET"])
 def search_professors():
-    query = request.args.get("q")
+    query = f"{request.args.get("q")}:*"
     if not query:
         return jsonify([])
     with cursor() as cur:
         cur.execute(
-            "SELECT * FROM professors WHERE to_tsvector('english', name) @@ plainto_tsquery('english', %s)",
+            "select * from professors where to_tsvector('english', name) @@ to_tsquery('english', %s)",
             (query,),
         )
         rows = cur.fetchall()
