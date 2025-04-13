@@ -2,7 +2,7 @@ import json
 import requests
 from backend.api import app, cursor
 from dataclasses import asdict
-from flask import request
+from flask import jsonify, request
 
 from backend.models.course import Course
 from backend.models.department import Department
@@ -48,12 +48,12 @@ def get_ucores():
 def search_professors():
     query = request.args.get("q")
     if not query:
-        return json.dumps([])
+        return jsonify([])
     with cursor() as cur:
         cur.execute(
-            "select * from professors where to_tsvector('english', name) @@ to_tsquery('english', %s)",
+            "SELECT * FROM professors WHERE to_tsvector('english', name) @@ plainto_tsquery('english', %s)",
             (query,),
         )
         rows = cur.fetchall()
         professors = [Professor(*row) for row in rows]
-        return json.dumps([convert_record(professor) for professor in professors])
+        return jsonify([convert_record(professor) for professor in professors])
