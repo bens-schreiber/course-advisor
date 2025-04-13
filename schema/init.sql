@@ -83,3 +83,7 @@ create table professor_course_ratings (
 
     unique (professor_id, course_id)
 );
+
+
+create index idx_professor_name on professors using gin (to_tsvector('english', name));
+create index idx_course_name on courses using gin (to_tsvector('english', name));
