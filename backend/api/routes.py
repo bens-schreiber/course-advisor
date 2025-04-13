@@ -1,24 +1,13 @@
 import json
-from flask import g
+import requests
 from backend.api import app, cursor
 from dataclasses import asdict
+from flask import request
 
 from backend.models.course import Course
 from backend.models.department import Department
+from backend.models.professor import Professor
 from backend.models.ucore import Ucore
-
-
-@app.route("/")
-def root():
-    return "Flask Root!"
-
-
-@app.route("/hello")
-def hello():
-    with cursor() as cur:
-        cur.execute("select 'Hello, world!'")
-        res = cur.fetchone()[0]
-    return f"Hello world from Flask! And here's a message from Postgres: {res}"
 
 
 def convert_record(record):  # datetime objects are not json serializable
@@ -53,3 +42,18 @@ def get_ucores():
         rows = cur.fetchall()
         ucores = [Ucore(*row) for row in rows]
         return json.dumps([convert_record(ucore) for ucore in ucores])
+
+
+@app.route("/api/v1/professors/search", methods=["GET"])
+def search_professors():
+    query = request.args.get("q")
+    if not query:
+        return json.dumps([])
+    with cursor() as cur:
+        cur.execute(
+            "select * from professors where to_tsvector('english', name) @@ to_tsquery('english', %s)",
+            (query,),
+        )
+        rows = cur.fetchall()
+        professors = [Professor(*row) for row in rows]
+        return json.dumps([convert_record(professor) for professor in professors])

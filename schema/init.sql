@@ -83,3 +83,7 @@ create table professor_course_ratings (
 
     unique (professor_id, course_id)
 );
+
+
+/* Create a full text search index on professors.name */
+create index idx_professor_name on professors using gin (to_tsvector('english', name));
