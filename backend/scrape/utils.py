@@ -25,7 +25,6 @@ load_dotenv(dotenv_path="../../../.env")
 class ScraperEnv:
     wsu_catalog_url: str
     wsu_catalog_ucore_url: str
-    sqlite_db: str
     rmp_professor_url: str
     rmp_url_professor: str
 
@@ -33,7 +32,6 @@ class ScraperEnv:
 scraper_env = ScraperEnv(
     wsu_catalog_url=os.getenv("WSU_CATALOG_URL"),
     wsu_catalog_ucore_url=os.getenv("WSU_CATALOG_UCORE_URL"),
-    sqlite_db=os.getenv("SQLITE_DB"),
     rmp_professor_url=os.getenv("RMP_PROFESSOR_URL"),
     rmp_url_professor=os.getenv("RMP_URL_PROFESSOR"),
 )
@@ -95,7 +93,6 @@ def _cursor() -> psycopg.cursor:
         host=pg.host,
     )
     return conn.cursor()
-
 
 
 def _db() -> psycopg.connection:

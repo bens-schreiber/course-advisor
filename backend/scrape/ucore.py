@@ -3,7 +3,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from backend.models.course_ucore import CourseUCore
-from utils import _cursor, logger, scraper_env, __driver, 
+from backend.scrape.utils import _cursor, logger, scraper_env, __driver
+from selenium.webdriver.support.ui import Select
 
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
@@ -20,7 +21,6 @@ def run_scrape_ucores():
     """
     # Constants
     logger.info("Starting UCORE course scraping process")
-
     cursor = _cursor()
     driver = __driver()
 
@@ -79,20 +79,27 @@ def run_scrape_ucores():
             for course in courses:
                 cursor.execute(
                     """
-                    INSERT OR REPLACE INTO ucore_courses (course_id, ucore_designation, course_name, credits, created_at)
-                    VALUES (?, ?, ?, ?, ?)
+                    INSERT OR REPLACE INTO course_ucores (course_id, ucore_designation, course_name, credits, created_at)
+                    VALUES (?, ?, ?, ?, datetime('now'))
                 """,
                     (
                         course.course_id,
                         course.ucore_designation,
                         course.course_name,
                         course.credits,
-                        course.created_at,
                     ),
                 )
+            # Commit the changes to the database
+            cursor.connection.commit()
 
-            conn.commit()
-            conn.close()
+            # close the cursor
+            cursor.close()
+
+            # Log the number of courses saved
+            logger.info(
+                f"Saved {len(courses)} courses for UCORE {ucore_code} to the database"
+            )
+
             logger.info(
                 f"Saved {len(courses)} courses for UCORE {ucore_code} to the database"
             )
