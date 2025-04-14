@@ -1,0 +1,23 @@
+[
+  {
+    "created_at": null,
+    "department_id": 1,
+    "id": 1,
+    "name": "Dr. Alice Johnson",
+    "updated_at": null
+  },
+  {
+    "created_at": null,
+    "department_id": 1,
+    "id": 2,
+    "name": "Dr. Bob Smith",
+    "updated_at": null
+  },
+  {
+    "created_at": null,
+    "department_id": 1,
+    "id": 6,
+    "name": "Dr. Frank Wilson",
+    "updated_at": null
+  }
+]
