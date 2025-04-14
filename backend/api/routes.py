@@ -169,3 +169,37 @@ def get_top_classes():
             for row in rows
         ]
         return jsonify([asdict(course) for course in courses]), 200
+
+
+@app.route("/api/v1/professors/search", methods=["GET"])
+def search_professors():
+    query = request.args.get("q")
+    if not query:
+        return jsonify([])
+    query += ":*"
+
+    with cursor() as cur:
+        cur.execute(
+            "select * from professors where to_tsvector('english', name) @@ to_tsquery('english', %s)",
+            (query,),
+        )
+        rows = cur.fetchall()
+        professors = [Professor(*row) for row in rows]
+        return jsonify([convert_record(professor) for professor in professors])
+
+
+@app.route("/api/v1/courses/search", methods=["GET"])
+def search_courses():
+    query = request.args.get("q")
+    if not query:
+        return jsonify([])
+    query += ":*"
+
+    with cursor() as cur:
+        cur.execute(
+            "select * from courses where to_tsvector('english', name) @@ to_tsquery('english', %s)",
+            (query,),
+        )
+        rows = cur.fetchall()
+        courses = [Course(*row) for row in rows]
+        return jsonify([convert_record(course) for course in courses])
