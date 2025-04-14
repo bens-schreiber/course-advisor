@@ -59,3 +59,5 @@ def teardown_request(exception=None):
 def cursor() -> psycopg.cursor:
     """Returns a cursor to the Postgres database. The connection is established in the before_request function."""
     return g.db.cursor()
+
+from backend.api import routes # register routes for testing
