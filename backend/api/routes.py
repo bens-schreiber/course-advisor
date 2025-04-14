@@ -11,6 +11,8 @@ from backend.models.professor import Professor
 Converts datetime properties to isoformat,
 datateime objects are not json serializable but isoformat is
 """
+
+
 def convert_record(record):
     record_dict = asdict(record)
     record_dict["created_at"] = record.created_at.isoformat()
@@ -21,6 +23,8 @@ def convert_record(record):
 """
 Returns all courses as an array of Courses
 """
+
+
 @app.route("/api/v1/courses", methods=["GET"])
 def get_courses():
     with cursor() as cur:
@@ -33,6 +37,8 @@ def get_courses():
 """
 Returns all departments as an array of Departments
 """
+
+
 @app.route("/api/v1/departments", methods=["GET"])
 def get_departments():
     with cursor() as cur:
@@ -45,6 +51,8 @@ def get_departments():
 """
 Returns all ucores as an array of Ucores
 """
+
+
 @app.route("/api/v1/ucores", methods=["GET"])
 def get_ucores():
     with cursor() as cur:
@@ -61,6 +69,8 @@ URL Request: /api/v1/top_professors?course_id={id}
 :param course_id: The id of the course to search for professors
 :return: A Professor array of the top 3 professors in json format
 """
+
+
 @app.route("/api/v1/top_professors", methods=["GET"])
 def get_top_professors():
     course_id = request.args.get("course_id")
@@ -112,6 +122,8 @@ URL Request: /api/v1/top_classes?credits={amount}&class_level={level}&department
 :param ucore: Optional parameter to specify the ucore of the courses
 :return: A Course array of the top 3 courses in json format
 """
+
+
 @app.route("/api/v1/top_classes", methods=["GET"])
 def get_top_classes():
     credits = request.args.get("credits")
