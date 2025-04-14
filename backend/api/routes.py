@@ -9,26 +9,22 @@ from backend.models.professor import Professor
 from backend.models.ucore import Ucore
 
 
-"""
-Converts datetime properties to isoformat,
-datateime objects are not json serializable but isoformat is
-"""
-
-
 def convert_record(record):
+    """
+    Converts datetime properties to isoformat,
+    datateime objects are not json serializable but isoformat is
+    """
     record_dict = asdict(record)
     record_dict["created_at"] = record.created_at.isoformat()
     record_dict["updated_at"] = record.updated_at.isoformat()
     return record_dict
 
 
-"""
-Returns all courses as an array of Courses
-"""
-
-
 @app.route("/api/v1/courses", methods=["GET"])
 def get_courses():
+    """
+    Returns all courses as an array of Courses
+    """
     with cursor() as cur:
         cur.execute("select * from courses")
         rows = cur.fetchall()
@@ -36,13 +32,11 @@ def get_courses():
         return jsonify([convert_record(course) for course in courses])
 
 
-"""
-Returns all departments as an array of Departments
-"""
-
-
 @app.route("/api/v1/departments", methods=["GET"])
 def get_departments():
+    """
+    Returns all departments as an array of Departments
+    """
     with cursor() as cur:
         cur.execute("select * from departments")
         rows = cur.fetchall()
@@ -50,13 +44,11 @@ def get_departments():
         return jsonify([convert_record(department) for department in departments])
 
 
-"""
-Returns all ucores as an array of Ucores
-"""
-
-
 @app.route("/api/v1/ucores", methods=["GET"])
 def get_ucores():
+    """
+    Returns all ucores as an array of Ucores
+    """
     with cursor() as cur:
         cur.execute("select * from ucores")
         rows = cur.fetchall()
@@ -64,17 +56,16 @@ def get_ucores():
         return jsonify([convert_record(ucore) for ucore in ucores])
 
 
-"""
-Returns the top 3 professors for a given course as an array of Professors
-URL Request: /api/v1/top_professors?course_id={id}
-
-:param course_id: The id of the course to search for professors
-:return: A Professor array of the top 3 professors in json format
-"""
-
-
 @app.route("/api/v1/top_professors", methods=["GET"])
 def get_top_professors():
+    """
+    Returns the top 3 professors for a given course as an array of Professors
+    URL Request: /api/v1/top_professors?course_id={id}
+
+    :param course_id: The id of the course to search for professors
+    :return: A Professor array of the top 3 professors in json format
+    """
+
     course_id = request.args.get("course_id")
 
     if not course_id:
@@ -114,20 +105,19 @@ def get_top_professors():
         return jsonify([asdict(professor) for professor in professors]), 200
 
 
-"""
-Returns the top 3 classes for a given credit amount, class level, department, and ucore (optional).
-URL Request: /api/v1/top_classes?credits={amount}&class_level={level}&department_id={id}&ucore={id}
-
-:param credits: The credits of the courses to search for
-:param class_level: The class level of the courses to search for
-:param department_id: The id of the courses' department to search for
-:param ucore: Optional parameter to specify the ucore of the courses
-:return: A Course array of the top 3 courses in json format
-"""
-
-
 @app.route("/api/v1/top_classes", methods=["GET"])
 def get_top_classes():
+    """
+    Returns the top 3 classes for a given credit amount, class level, department, and ucore (optional).
+    URL Request: /api/v1/top_classes?credits={amount}&class_level={level}&department_id={id}&ucore={id}
+
+    :param credits: The credits of the courses to search for
+    :param class_level: The class level of the courses to search for
+    :param department_id: The id of the courses' department to search for
+    :param ucore: Optional parameter to specify the ucore of the courses
+    :return: A Course array of the top 3 courses in json format
+    """
+
     credits = request.args.get("credits")
     class_level = request.args.get("class_level")
     dept_id = request.args.get("department_id")
