@@ -5,3 +5,5 @@ pytest-snapshot
 python-dotenv
 beautifulsoup4
 apscheduler # Scheduler for the scraper job
+selenium
+webdriver-manager

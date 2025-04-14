@@ -1,11 +1,13 @@
 from flask import request, jsonify
 from backend.api import app, cursor
 from dataclasses import asdict
+from flask import jsonify, request
 
 from backend.models.course import Course
 from backend.models.department import Department
-from backend.models.ucore import Ucore
 from backend.models.professor import Professor
+from backend.models.ucore import Ucore
+
 
 """
 Converts datetime properties to isoformat,
