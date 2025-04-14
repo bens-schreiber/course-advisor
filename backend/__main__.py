@@ -1,7 +1,8 @@
 import argparse
 from backend.api import app
 from backend.api import routes
-from backend.scrape import run_scrape_pids, run_scrape_db_seed,run_scrape_ucores
+from backend.scrape.professor import run_scrape_pids, run_scrape_db_seed
+from backend.scrape.ucore import run_scrape_ucores
 
 
 parser = argparse.ArgumentParser(
