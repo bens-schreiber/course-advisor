@@ -1,4 +1,5 @@
 from dataclasses import dataclass
+import sqlite3
 from dotenv import load_dotenv
 import os
 import logging
@@ -23,16 +24,12 @@ load_dotenv(dotenv_path="../../../.env")
 
 @dataclass(frozen=True)
 class ScraperEnv:
-    wsu_catalog_url: str
-    wsu_catalog_ucore_url: str
-    rmp_professor_url: str
+    rmp_wsu_professor_url: str
     rmp_url_professor: str
 
 
 scraper_env = ScraperEnv(
-    wsu_catalog_url=os.getenv("WSU_CATALOG_URL"),
-    wsu_catalog_ucore_url=os.getenv("WSU_CATALOG_UCORE_URL"),
-    rmp_professor_url=os.getenv("RMP_PROFESSOR_URL"),
+    rmp_wsu_professor_url=os.getenv("RMP_URL"), 
     rmp_url_professor=os.getenv("RMP_URL_PROFESSOR"),
 )
 
@@ -82,19 +79,6 @@ pg = PostgresEnv(
     host=os.getenv("POSTGRES_HOST", "localhost"),
 )
 
-
-def _cursor() -> psycopg.cursor:
-    """Returns a cursor to the Postgres database"""
-    conn = psycopg.connect(
-        user=pg.user,
-        password=pg.passw,
-        port=pg.port,
-        dbname=pg.db,
-        host=pg.host,
-    )
-    return conn.cursor()
-
-
 def _db() -> psycopg.connection:
     """Returns a connection to the Postgres database"""
     return psycopg.connect(
@@ -104,3 +88,13 @@ def _db() -> psycopg.connection:
         dbname=pg.db,
         host=pg.host,
     )
+
+
+# ========================================
+# SQLITTE CONNECTION SETUP
+# ========================================
+
+
+def _sqlite_db() -> sqlite3.Connection:
+    """Returns a connection to the SQLite database"""
+    return sqlite3.connect("scrape.db")

@@ -1,6 +1,7 @@
 import sqlite3
 from backend.models.course_ucore import CourseUCore
 import requests
+from backend.scrape.utils import _sqlite_db
 
 # UCORE API endpoints
 UCORE_ENDPOINTS = {
@@ -46,10 +47,9 @@ def fetch_ucore_courses() -> list[CourseUCore]:
     return all_courses
 
 
-def store_courses_in_db(courses: list[CourseUCore], db_name: str = "ucore_courses.db"):
-    conn = sqlite3.connect(db_name)
+def store_courses_in_db(courses: list[CourseUCore]):
+    conn = _sqlite_db()
     cursor = conn.cursor()
-
     cursor.execute(
         """
         CREATE TABLE IF NOT EXISTS ucore_courses (

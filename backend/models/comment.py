@@ -3,7 +3,7 @@ from datetime import date
 
 
 @dataclass(frozen=True)
-class Comment:
+class _Comment:
     course_name: str
     course_level: int
     quality: float

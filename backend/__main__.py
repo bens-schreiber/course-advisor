@@ -1,7 +1,7 @@
 import argparse
 from backend.api import app
 from backend.api import routes
-from backend.scrape.professor import run_scrape_pids, run_scrape_db_seed
+from backend.scrape.professor import run_scrape_pids
 from backend.scrape.ucore import fetch_ucore_courses, store_courses_in_db
 
 
@@ -73,7 +73,7 @@ elif args.init_db:
     courses = fetch_ucore_courses()
     store_courses_in_db(courses)
     run_scrape_pids()
-    run_scrape_db_seed()
+    # Scrape comments
 
 
 else:
