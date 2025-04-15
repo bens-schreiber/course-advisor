@@ -1,6 +1,7 @@
 flask
 psycopg[binary] # PostgreSQL driver
 pytest
+pytest-snapshot
 python-dotenv
 beautifulsoup4
 apscheduler # Scheduler for the scraper job
