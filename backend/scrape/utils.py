@@ -56,40 +56,6 @@ def __driver() -> webdriver.Safari:
     """Create and return a Safari webdriver instance."""
     return webdriver.Safari()
 
-
-# ========================================
-# POSTGRES CONNECTION SETUP
-# ========================================
-
-
-@dataclass
-class PostgresEnv:
-    user: str
-    passw: str
-    port: str
-    db: str
-    host: str
-
-
-pg = PostgresEnv(
-    user=os.getenv("POSTGRES_USER"),
-    passw=os.getenv("POSTGRES_PASSWORD"),
-    port=os.getenv("POSTGRES_PORT", "5432"),
-    db=os.getenv("POSTGRES_DB"),
-    host=os.getenv("POSTGRES_HOST", "localhost"),
-)
-
-def _db() -> psycopg.connection:
-    """Returns a connection to the Postgres database"""
-    return psycopg.connect(
-        user=pg.user,
-        password=pg.passw,
-        port=pg.port,
-        dbname=pg.db,
-        host=pg.host,
-    )
-
-
 # ========================================
 # SQLITTE CONNECTION SETUP
 # ========================================

@@ -1,43 +1,11 @@
-from dataclasses import dataclass
 from flask import Flask, g
-from dotenv import load_dotenv
 import os
 import psycopg
-
-
-@dataclass
-class PostgresEnv:
-    user: str
-    passw: str
-    port: str
-    db: str
-    host: str
+from util import __db
 
 
 # Create a Flask app
 app = Flask(__name__)
-
-
-# Load the environment variables
-load_dotenv()
-env = PostgresEnv(
-    user=os.getenv("POSTGRES_USER"),
-    passw=os.getenv("POSTGRES_PASSWORD"),
-    port=os.getenv("POSTGRES_PORT", "5432"),
-    db=os.getenv("POSTGRES_DB"),
-    host=os.getenv("POSTGRES_HOST", "localhost"),
-)
-
-
-def __db() -> psycopg.connection:
-    """Returns a connection to the Postgres database"""
-    return psycopg.connect(
-        user=env.user,
-        password=env.passw,
-        port=env.port,
-        dbname=env.db,
-        host=env.host,
-    )
 
 
 @app.before_request
