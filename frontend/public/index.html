@@ -13,97 +13,54 @@
     <script src="//unpkg.com/alpinejs" defer></script>
   </head>
   <body>
-
     <main>
-      <div
-        x-data="{ items: [], selectedCourse: null }"
-        @htmx:after-request="items = JSON.parse($event.detail.xhr.responseText)"
-      >
-        
-        <!-- Trigger HTMX to fetch courses when the page loads -->
-        <div hx-get="/api/v1/courses" hx-trigger="load" hx-swap="none"></div>
 
-        <!-- Course Selection Form -->
-        <form 
-          hx-get="/api/v1/fake-route"
-          hx-target="#course-details"
-          hx-trigger="submit"
+      <div x-data="{ 
+        courses: [], 
+        selectedCourse: null,
+        searchText: '',
+        topProfessors: []
+      }" x-init="fetch('/api/v1/courses/search').then(r => r.json()).then(data => courses = data)">
+        
+        <!-- Course selection -->
+        <input 
+          list="course-list" 
+          x-model="searchText"
+          @change="selectedCourse = courses.find(c => c.name === searchText)"
+          placeholder="Select a course"
         >
-          <!-- Title for the dropdown -->
-          <p><strong>Top 3 Professors</strong></p>
         
-          <!-- Dropdown populated with courses -->
-          <select x-model="selectedCourse" name="courseId">
-            <template x-for="item in items" :key="item.id">
-              <option :value="item.id" x-text="item.name"></option>
+        <datalist id="course-list">
+          <template x-for="course in courses" :key="course.id">
+            <option :value="course.name"></option>
+          </template>
+        </datalist>
+        
+        <!-- Go button -->
+        <button
+          @click="if(selectedCourse) fetch(`/api/v1/top_professors?course_id=${selectedCourse.id}`).then(r => r.json()).then(data => topProfessors = data)"
+          :disabled="!selectedCourse"
+        >
+          Go
+        </button>
+        
+        <!-- Results section -->
+        <div x-show="topProfessors.length > 0" class="professors-results">
+          <h3>Top Professors for <span x-text="selectedCourse?.name"></span></h3>
+          <ul>
+            <template x-for="professor in topProfessors" :key="professor.id">
+              <li x-text="professor.name"></li>
             </template>
-          </select>
+          </ul>
+        </div>
         
-          <button type="submit">Submit</button>
-        </form>
-        
-        <!-- Area to display the course details -->
-        <div id="course-details"></div>
-
+        <!-- No results message -->
+        <div x-show="selectedCourse && topProfessors.length === 0 && topProfessors.requested">
+          No professors found for this course.
+        </div>
       </div>
-      <p><strong>Top Classes based on credits, class, and ucore</strong></p>
-      <select name="credits" class="form-select">
-        <option value="" disabled selected>Select credits</option>
-        <option value="2">2 Credits</option>
-        <option value="3">3 Credits</option>
-        <option value="4">4 Credits</option>
-      </select>
 
-      <select name="professors" class="form-select">
-        <option value="" disabled selected>Select a professor</option>
-        <option value="1">Dr. Alice Johnson</option>
-        <option value="2">Dr. Bob Smith</option>
-        <option value="3">Dr. Carol White</option>
-        <option value="4">Dr. David Brown</option>
-        <option value="5">Dr. Eve Davis</option>
-        <option value="5">Dr. Frank Wilson</option>
-      </select>
-
-    <select>
-      <option value="" disabled selected>Select a professor</option>
-      <option value="1">Dr. Alice Johnson</option>
-      <option value="2">Dr. Bob Smith</option>
-      <option value="3">Dr. Carol White</option>
-      <option value="4">Dr. David Brown</option>
-      <option value="5">Dr. Eve Davis</option>
-      <option value="6">Dr. Frank Wilson</option>
-    </select>
-
-    <select name="ucore" class="form-select">
-      <option value="" disabled selected>Select a UCORE category</option>
-      <option value="ctcre">CTCRE - Critical and Creative Thinking</option>
-      <option value="qsr">QSR - Quantitative Reasoning</option>
-      <option value="sci">SCI - Scientific Literacy</option>
-      <option value="inf">INF - Information Literacy</option>
-      <option value="comm">COMM - Communication</option>
-      <option value="divr">DIVR - Diversity</option>
-      <option value="depth">DBIL - Depth, Breadth, and Integration of Learning</option>
-    </select>
-    <button 
-    hx-get="/api/v1/fake-route" 
-    hx-target="#data-list" 
-    hx-swap="innerHTML" 
-    class="form-button"
-  >
-    Submit
-  </button>
-
-  <!-- Area to display the fetched data -->
-  <ul id="data-list" class="data-list">
-    <!-- Fetched data will be displayed here -->
-  </ul>
-       <div>
-
-       </div>
     </main>
-
-    <footer>
-    </footer>
-
+    <footer></footer>
   </body>
 </html>
