@@ -1,4 +1,3 @@
-import sqlite3
 from backend.models.course_ucore import CourseUCore
 import requests
 from backend.scrape.utils import _sqlite_db

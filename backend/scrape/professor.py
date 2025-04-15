@@ -1,13 +1,8 @@
-from datetime import datetime
-from backend.models.comment import _Comment
-from backend.models.professor import _Professor
 import traceback
-from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-import sqlite3
 from backend.scrape.utils import _sqlite_db, scraper_env, __driver, logger
 
 
