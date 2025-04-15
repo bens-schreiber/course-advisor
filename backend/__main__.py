@@ -2,7 +2,7 @@ import argparse
 from backend.api import app
 from backend.api import routes
 from backend.scrape.professor import run_scrape_pids, run_scrape_db_seed
-from backend.scrape.ucore import run_scrape_ucores
+from backend.scrape.ucore import fetch_ucore_courses, store_courses_in_db
 
 
 parser = argparse.ArgumentParser(
@@ -66,10 +66,12 @@ elif args.scrape_db_seed:
             exit()
 
 elif args.scrape_ucores:
-    run_scrape_ucores()
+    courses = fetch_ucore_courses()
+    store_courses_in_db(courses)
 
 elif args.init_db:
-    run_scrape_ucores()
+    courses = fetch_ucore_courses()
+    store_courses_in_db(courses)
     run_scrape_pids()
     run_scrape_db_seed()
 
