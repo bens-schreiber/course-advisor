@@ -42,6 +42,7 @@ def fetch_ucore_courses() -> list[CourseUCore]:
                 )
         except Exception as e:
             print(f"Failed to fetch or parse data from {url}: {e}")
+            return []
 
     return all_courses
 
