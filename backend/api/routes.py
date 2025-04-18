@@ -28,8 +28,8 @@ def get_courses():
     with cursor() as cur:
         cur.execute("select * from courses")
         rows = cur.fetchall()
-        courses = [Course(*row) for row in rows]
-        return jsonify([convert_record(course) for course in courses])
+        courses = [{"id": row[0], "name": row[1]} for row in rows]
+        return jsonify(courses)
 
 
 @app.route("/api/v1/departments", methods=["GET"])
@@ -174,15 +174,19 @@ def get_top_classes():
 @app.route("/api/v1/professors/search", methods=["GET"])
 def search_professors():
     query = request.args.get("q")
-    if not query:
-        return jsonify([])
-    query += ":*"
-
+    
     with cursor() as cur:
-        cur.execute(
-            "select * from professors where to_tsvector('english', name) @@ to_tsquery('english', %s)",
-            (query,),
-        )
+        if not query:
+            # Return all professors if no query is provided
+            cur.execute("SELECT * FROM professors")
+        else:
+            # If query exists, search with full text search
+            query += ":*"
+            cur.execute(
+                "SELECT * FROM professors WHERE to_tsvector('english', name) @@ to_tsquery('english', %s)",
+                (query,),
+            )
+        
         rows = cur.fetchall()
         professors = [Professor(*row) for row in rows]
         return jsonify([convert_record(professor) for professor in professors])
@@ -192,7 +196,11 @@ def search_professors():
 def search_courses():
     query = request.args.get("q")
     if not query:
-        return jsonify([])
+        with cursor() as cur:
+            cur.execute("select * from courses")
+            rows = cur.fetchall()
+            courses = [{"id": row[0], "name": row[1]} for row in rows]
+            return jsonify(courses)
     query += ":*"
 
     with cursor() as cur:

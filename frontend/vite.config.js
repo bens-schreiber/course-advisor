@@ -13,7 +13,7 @@ export default defineConfig({
     open: true,
     proxy: {
       "/api": {
-        target: "http://localhost:5000", // TODO: Production/Dev URL
+        target: "http://127.0.0.1:5000/api", // TODO: Production/Dev URL
         changeOrigin: true,
         rewrite: (path) => path.replace(/^\/api/, ""),
       },

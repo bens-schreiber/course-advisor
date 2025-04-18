@@ -1,3 +1,27 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+/* Header Bar */
+.header-bar {
+    background-color: #DC143C;
+    color: black;
+    padding: 10px 20px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+  }
+  
+  .header-logo {
+    height: 50px; /* Adjust the height of the logo */
+    width: auto; /* Maintain aspect ratio */
+    margin-right: 20px; /* Add spacing between the logo and the title */
+  }
+  
+  .header-title {
+    margin: 0;
+    font-size: 2.5rem;
+    font-weight: bold;
+    flex-grow: 1; /* Ensures the title takes up remaining space */
+    text-align: center; /* Centers the title */
+  }
