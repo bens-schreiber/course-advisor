@@ -34,12 +34,13 @@ create table course_departments (
 
 create table course_ucores (
     id serial primary key,
-    course_id int not null references courses(id),
-    ucore_id int not null references ucores(id),
+    course_id text not null, 
+    ucore_designation text not null, 
+    course_name text not null,
+    credits text not null,
     created_at timestamp not null default now(),
-    updated_at timestamp not null default now(),
 
-    unique (course_id, ucore_id)
+    unique (course_id, ucore_designation)
 );
 
 create table professors (
