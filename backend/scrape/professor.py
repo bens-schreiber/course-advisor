@@ -41,6 +41,11 @@ def run_scrape_pids():
     try:
         ids = set()
         prev = 0
+        WebDriverWait(d, 10).until(
+            EC.presence_of_element_located(
+                (By.XPATH, "//a[contains(@href, '/professor/')]")
+            )
+        )
         while True:
             professors = d.find_elements(
                 By.XPATH, "//a[contains(@href, '/professor/')]"

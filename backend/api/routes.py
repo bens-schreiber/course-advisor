@@ -5,7 +5,7 @@ from flask import jsonify, request
 
 from backend.models.course import Course
 from backend.models.department import Department
-from backend.models.professor import Professor
+from backend.models.professor import _Professor as Professor
 from backend.models.ucore import Ucore
 
 

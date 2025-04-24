@@ -8,6 +8,8 @@ from selenium import webdriver
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.webdriver.support.ui import WebDriverWait, Select
+from selenium.common.exceptions import TimeoutException
+from selenium.webdriver.chrome.options import Options
 
 
 # ========================================
@@ -29,7 +31,7 @@ class ScraperEnv:
 
 
 scraper_env = ScraperEnv(
-    rmp_wsu_professor_url=os.getenv("RMP_URL"), 
+    rmp_wsu_professor_url=os.getenv("RMP_URL"),
     rmp_url_professor=os.getenv("RMP_URL_PROFESSOR"),
 )
 
@@ -52,9 +54,21 @@ logger = logging.getLogger("ScraperLogger")
 # ========================================
 
 
-def __driver() -> webdriver.Safari:
-    """Create and return a Safari webdriver instance."""
-    return webdriver.Safari()
+def __driver() -> webdriver.Chrome:
+    """Create and return a Chrome webdriver instance with iframe blocking."""
+    options = Options()
+    options.page_load_strategy = "eager"
+    options.add_argument("--headless")
+    options.add_argument("--disable-extensions")
+    options.add_argument("--disable-popup-blocking")
+    options.add_argument("--disable-site-isolation-trials")
+    options.add_argument("--blink-settings=block-iframe=true")  # Block iframes
+
+    
+
+    driver = webdriver.Chrome(options=options)
+
+    return driver
 
 # ========================================
 # SQLITTE CONNECTION SETUP

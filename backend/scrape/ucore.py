@@ -63,6 +63,10 @@ def store_courses_in_db(courses: list[CourseUCore]):
     """
     )
 
+    # Clear the table before inserting new data
+    cursor.execute("DELETE FROM ucore_courses")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='ucore_courses'")
+
     for course in courses:
         cursor.execute(
             """
