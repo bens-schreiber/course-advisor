@@ -1,7 +1,7 @@
 import argparse
 from backend.api import app
 from backend.api import routes
-from backend.scrape.professor import run_scrape_pids
+from backend.scrape.professor import run_scrape_pids, run_scrape_comments
 from backend.scrape.ucore import fetch_ucore_courses, store_courses_in_db
 
 
@@ -18,6 +18,11 @@ parser.add_argument(
 parser.add_argument(
     "--scrape_pids",
     help="Scrapes all new professor ids from RateMyProfessors, storing to a local sqlite3 db",
+    action="store_true",
+)
+parser.add_argument(
+    "--scrape_comments",
+    help="Scrapes all comments from RateMyProfessors, storing to a local sqlite3 db",
     action="store_true",
 )
 
@@ -55,6 +60,9 @@ if args.app:
 elif args.scrape_pids:
     run_scrape_pids()
 
+elif args.test:
+    raise NotImplementedError("Tests for the scraper are not implemented yet.")
+
 elif args.scrape_db_seed:
     print(
         "This action will clear the database. Are you sure you want to do this? (y/n)"
@@ -73,7 +81,10 @@ elif args.init_db:
     courses = fetch_ucore_courses()
     store_courses_in_db(courses)
     run_scrape_pids()
-    # Scrape comments
+    run_scrape_comments()
+
+elif args.scrape_comments:
+    run_scrape_comments()
 
 
 else:

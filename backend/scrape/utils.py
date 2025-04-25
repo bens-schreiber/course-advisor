@@ -58,17 +58,16 @@ def __driver() -> webdriver.Chrome:
     """Create and return a Chrome webdriver instance with iframe blocking."""
     options = Options()
     options.page_load_strategy = "eager"
-    options.add_argument("--headless")
+    options.add_argument("--headless")  # Run in headless mode
     options.add_argument("--disable-extensions")
     options.add_argument("--disable-popup-blocking")
     options.add_argument("--disable-site-isolation-trials")
     options.add_argument("--blink-settings=block-iframe=true")  # Block iframes
 
-    
-
     driver = webdriver.Chrome(options=options)
 
     return driver
+
 
 # ========================================
 # SQLITTE CONNECTION SETUP
