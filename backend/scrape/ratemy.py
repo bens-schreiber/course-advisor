@@ -209,7 +209,8 @@ def run_scrape_comments():
                 quality REAL,
                 difficulty REAL,
                 comment TEXT,
-                date TIMESTAMP
+                date TIMESTAMP,
+                rateMyId INTEGER
             )
             """
     )
@@ -235,8 +236,8 @@ def run_scrape_comments():
         # Insert the scraped comments into the database
         cursor.executemany(
             """
-            INSERT INTO comments (course_name, course_level, quality, difficulty, comment, date)
-            VALUES (?, ?, ?, ?, ?, ?)
+            INSERT INTO comments (course_name, course_level, quality, difficulty, comment, date, rateMyId)
+            VALUES (?, ?, ?, ?, ?, ? , ?)
             """,
             [
                 (
@@ -246,6 +247,7 @@ def run_scrape_comments():
                     comment.difficulty,
                     comment.comment,
                     comment.date.isoformat(),
+                    id,  # Use the professor ID for the foreign key
                 )
                 for comment in comments
             ],

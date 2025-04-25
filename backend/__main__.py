@@ -45,6 +45,12 @@ parser.add_argument(
 )
 
 parser.add_argument(
+    "--scrape_ucore",
+    help="Scrapes all ucores (art, humanities, social science, etc.) from the WSU course catalog, storing to a local sqlite3 db",
+    action="store_true",
+)
+
+parser.add_argument(
     "--test",
     help="Run the tests",
     action="store_true",
@@ -88,6 +94,10 @@ elif args.init_db:
 
 elif args.scrape_comments:
     run_scrape_comments()
+
+elif args.scrape_ucore:
+    courses = fetch_ucore_courses()
+    store_courses_in_db(courses)
 
 
 else:
