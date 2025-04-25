@@ -69,7 +69,10 @@ elif args.scrape_db_seed:
     )
     match input().lower():
         case "y":
-            run_scrape_db_seed()
+            courses = fetch_ucore_courses()
+            store_courses_in_db(courses)
+            run_scrape_professors()
+            run_scrape_comments()
         case _:
             exit()
 

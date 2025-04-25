@@ -104,11 +104,6 @@ def run_scrape_professors():
                     )
                 )
 
-                # log the scraped professor information
-                logger.info(
-                    f"Scraped Professor: {name}, Department: {department_id}, ID: {prof_id}"
-                )
-
             prev = len(professors)
             d.find_element(By.XPATH, "//button[contains(text(), 'Show More')]").click()
             WebDriverWait(d, 10).until(
@@ -127,23 +122,18 @@ def run_scrape_professors():
         conn.close()
         logger.info("Finished run_scrape_proffessors.")
 
-    def save_prof(prof_list: list[_Professor]):
+
+def save_prof(prof_list: list[_Professor]):
+    """
+    Save a list of professors to the database.
+    """
+    logger.info("Saving professor data to the database...")
+    conn = _sqlite_db()
+    cursor = conn.cursor()
+
+    # Create the professors table if it doesn't exist
+    cursor.execute(
         """
-        Save a list of professors to the database.
-        """
-        logger.info("Saving professor data to the database...")
-        conn = _sqlite_db()
-        cursor = conn.cursor()
-
-        # Clear the professors table before inserting new data
-        cursor.execute("DELETE FROM professors")
-        cursor.execute("DELETE FROM sqlite_sequence WHERE name='professors'")
-
-        conn.commit()
-
-        # Create the professors table if it doesn't exist
-        cursor.execute(
-            """
             CREATE TABLE IF NOT EXISTS professors (
                 id INTEGER PRIMARY KEY,
                 name TEXT,
@@ -151,20 +141,22 @@ def run_scrape_professors():
                 rateMyProfessorsId TEXT
             )
             """
-        )
-        cursor.executemany(
-            """
+    )
+    # Clear the professors table before inserting new data
+    cursor.execute("DELETE FROM professors")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='professors'")
+
+    conn.commit()
+    cursor.executemany(
+        """
             INSERT INTO professors (name, departmentId, rateMyProfessorsId)
             VALUES (?, ?, ?)
             """,
-            [
-                (prof.name, prof.department_id, prof.rate_my_query_id)
-                for prof in prof_list
-            ],
-        )
-        logger.info(f"Saved {len(prof_list)} professors to the database.")
-        conn.commit()
-        conn.close()
+        [(prof.name, prof.department_id, prof.rate_my_query_id) for prof in prof_list],
+    )
+    logger.info(f"Saved {len(prof_list)} professors to the database.")
+    conn.commit()
+    conn.close()
 
 
 def professor_ids() -> list[str]:
@@ -174,7 +166,7 @@ def professor_ids() -> list[str]:
     conn = _sqlite_db()
     cursor = conn.cursor()
 
-    cursor.execute("SELECT id FROM professors")
+    cursor.execute("SELECT rateMyProfessorsId FROM professors")
 
     ids = [row[0] for row in cursor.fetchall()]
 
