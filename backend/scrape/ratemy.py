@@ -7,43 +7,52 @@ from selenium.common.exceptions import TimeoutException
 from backend.scrape.utils import _sqlite_db, scraper_env, __driver, logger
 from backend.models.comment import _Comment
 from backend.models.professor import _Professor
+from backend.models.department import Department
 
 
-def run_scrape_pids():
-    logger.info("Starting run_scrape_pids...")
+def run_scrape_professors():
+    """
+    Scrape all professors from the RateMyProfessors website and store their IDs in a local SQLite database.
+    This function uses Selenium to navigate the RateMyProfessors website and extract professor IDs.
+    also scapes the department ID from the professor's page.
+    """
+    logger.info("Starting run_scrape_proffessors..")
+
     d = __driver()
     url = scraper_env.rmp_wsu_professor_url.strip()
     d.get(url)
 
     logger.info(f"Navigating to URL: {url}")
 
-    def save_ids(ids):
-        logger.info("Saving professor IDs to the database...")
-        conn = _sqlite_db()
-        cursor = conn.cursor()
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS professors (
-                id TEXT PRIMARY KEY
+    # Clear the departments table before inserting new data
+    conn = _sqlite_db()
+    cursor = conn.cursor()
+
+    # Create the departments table if it doesn't exist
+    cursor.execute(
+        """
+            CREATE TABLE IF NOT EXISTS departments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
+                name TEXT UNIQUE
             )
             """
-        )
-        cursor.executemany(
-            """
-            INSERT OR IGNORE INTO professors (id)
-            VALUES (?)
-            """,
-            [(id,) for id in ids],
-        )
-        logger.info(
-            f"From the {len(ids)} professors scraped, {cursor.rowcount} were new."
-        )
-        conn.commit()
-        conn.close()
+    )
 
+    # Clear the departments table
+    cursor.execute("DELETE FROM departments")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='departments'")
+
+    conn.commit()
+
+    WebDriverWait(d, 10).until(
+        EC.presence_of_element_located(
+            (By.XPATH, "//div[contains(@class, 'TeacherCard__CardInfo')]")
+        )
+    )
     try:
-        ids = set()
-        prev = 0
+        profs = list()
+        department_dict = dict()
+
         WebDriverWait(d, 10).until(
             EC.presence_of_element_located(
                 (By.XPATH, "//a[contains(@href, '/professor/')]")
@@ -54,8 +63,52 @@ def run_scrape_pids():
                 By.XPATH, "//a[contains(@href, '/professor/')]"
             )
             logger.info(f"Found {len(professors)} professors...")
-            for p in professors[prev:]:
-                ids.add(p.get_attribute("href").split("/")[-1])
+            for p in professors:
+
+                href = p.get_attribute("href")
+                prof_id = href.split("/")[-1]
+                name_element = p.find_element(
+                    By.XPATH, ".//div[contains(@class, 'CardName__StyledCardName')]"
+                )
+                department_element = p.find_element(
+                    By.XPATH, ".//div[contains(@class, 'CardSchool__Department')]"
+                )
+
+                name = name_element.text.strip() if name_element else "Unknown Name"
+                department = (
+                    department_element.text.strip()
+                    if department_element
+                    else "Unknown Department"
+                )
+
+                # Check if the department is already in the dictionary
+                if department not in department_dict:
+                    # If not, add it to the dictionary and the database
+                    department_id = len(department_dict) + 1
+                    department_dict[department] = department_id
+                    cursor.execute(
+                        "INSERT OR IGNORE INTO departments (id, name) VALUES (?, ?)",
+                        (department_id, department),
+                    )
+                    conn.commit()
+                else:
+                    # If it is, get the existing department ID
+                    department_id = department_dict[department]
+
+                # Create a new _Professor object and add it to the list
+                profs.append(
+                    _Professor(
+                        name=name,
+                        department_id=department_id,
+                        rate_my_query_id=prof_id,
+                    )
+                )
+
+                # log the scraped professor information
+                logger.info(
+                    f"Scraped Professor: {name}, Department: {department_id}, ID: {prof_id}"
+                )
+
             prev = len(professors)
             d.find_element(By.XPATH, "//button[contains(text(), 'Show More')]").click()
             WebDriverWait(d, 10).until(
@@ -63,18 +116,55 @@ def run_scrape_pids():
                     (By.XPATH, f"(//a[contains(@href, '/professor/')])[{prev+1}]")
                 )
             )
-    except KeyboardInterrupt:
-        logger.warning("Process interrupted by user (Ctrl+C).")
-    except TimeoutException:
-        logger.info("No more professors to load.")
+
     except Exception as e:
         logger.error(f"An error occurred while scraping professor IDs: {e}")
         traceback.print_exc()
     finally:
-        logger.info(f"Scraped {len(ids)} professor IDs.")
+        logger.info(f"Scraped {len(profs)} professor IDs.")
         d.quit()
-        save_ids(ids)
-        logger.info("Finished run_scrape_pids.")
+        save_prof(prof_list=profs)
+        conn.close()
+        logger.info("Finished run_scrape_proffessors.")
+
+    def save_prof(prof_list: list[_Professor]):
+        """
+        Save a list of professors to the database.
+        """
+        logger.info("Saving professor data to the database...")
+        conn = _sqlite_db()
+        cursor = conn.cursor()
+
+        # Clear the professors table before inserting new data
+        cursor.execute("DELETE FROM professors")
+        cursor.execute("DELETE FROM sqlite_sequence WHERE name='professors'")
+
+        conn.commit()
+
+        # Create the professors table if it doesn't exist
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS professors (
+                id INTEGER PRIMARY KEY,
+                name TEXT,
+                departmentId INTEGER,
+                rateMyProfessorsId TEXT
+            )
+            """
+        )
+        cursor.executemany(
+            """
+            INSERT INTO professors (name, departmentId, rateMyProfessorsId)
+            VALUES (?, ?, ?)
+            """,
+            [
+                (prof.name, prof.department_id, prof.rate_my_query_id)
+                for prof in prof_list
+            ],
+        )
+        logger.info(f"Saved {len(prof_list)} professors to the database.")
+        conn.commit()
+        conn.close()
 
 
 def professor_ids() -> list[str]:
@@ -284,18 +374,3 @@ def scrape_prof_comments(d, id) -> list[_Comment]:
         # Log the total number of comments scraped and return the list
         logger.info(f"Scraped {len(comments)} comments for professor ID: {id}.")
         return comments
-
-
-def scrape_prof(d, id) -> _Professor:
-    pass
-    d = __driver()
-    ids = professor_ids()
-
-    url = scraper_env.rmp_wsu_professor_url.strip()
-    d.get(f"{url}/{id}")
-    logger.info(f"Scraping professor ID: {id}")
-
-    for id in ids:
-        # prof = scrape_prof(d, id)
-        comments = scrape_prof_comments(d, id)
-        print(f"Scraped {len(comments)} comments for {id}.")

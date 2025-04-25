@@ -1,7 +1,7 @@
 import argparse
 from backend.api import app
 from backend.api import routes
-from backend.scrape.professor import run_scrape_pids, run_scrape_comments
+from backend.scrape.ratemy import run_scrape_professors, run_scrape_comments
 from backend.scrape.ucore import fetch_ucore_courses, store_courses_in_db
 
 
@@ -58,7 +58,7 @@ if args.app:
     app.run(port=5000, debug=True)
 
 elif args.scrape_pids:
-    run_scrape_pids()
+    run_scrape_professors()
 
 elif args.test:
     raise NotImplementedError("Tests for the scraper are not implemented yet.")
@@ -80,7 +80,7 @@ elif args.scrape_ucores:
 elif args.init_db:
     courses = fetch_ucore_courses()
     store_courses_in_db(courses)
-    run_scrape_pids()
+    run_scrape_professors()
     run_scrape_comments()
 
 elif args.scrape_comments:

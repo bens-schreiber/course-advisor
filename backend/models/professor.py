@@ -4,8 +4,7 @@ from datetime import datetime
 
 @dataclass(frozen=True)
 class _Professor:
-    id: int
-    department_id: int
     name: str
-    created_at: datetime
-    updated_at: datetime
+    department_id: int
+    rate_my_query_id: int
+
