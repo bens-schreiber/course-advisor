@@ -58,15 +58,21 @@ def run_scrape_professors():
                 (By.XPATH, "//a[contains(@href, '/professor/')]")
             )
         )
+        seen_professors = set()
         while True:
             professors = d.find_elements(
                 By.XPATH, "//a[contains(@href, '/professor/')]"
             )
             logger.info(f"Found {len(professors)} professors...")
             for p in professors:
-
                 href = p.get_attribute("href")
                 prof_id = href.split("/")[-1]
+
+                # Skip if professor ID is already processed
+                if prof_id in seen_professors:
+                    continue
+                seen_professors.add(prof_id)
+
                 name_element = p.find_element(
                     By.XPATH, ".//div[contains(@class, 'CardName__StyledCardName')]"
                 )
