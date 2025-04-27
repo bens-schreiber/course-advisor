@@ -1,7 +1,7 @@
 from flask import Flask, g
-import os
 import psycopg
-from util import __db
+
+from backend.env import PostgresConnection
 
 
 # Create a Flask app
@@ -11,7 +11,7 @@ app = Flask(__name__)
 @app.before_request
 def before_request():
     """Establish the connection before each request."""
-    g.db = __db()
+    g.db = PostgresConnection.create()
 
 
 @app.teardown_request
@@ -28,4 +28,5 @@ def cursor() -> psycopg.cursor:
     """Returns a cursor to the Postgres database. The connection is established in the before_request function."""
     return g.db.cursor()
 
-from backend.api import routes # register routes for testing
+
+from backend.api import routes

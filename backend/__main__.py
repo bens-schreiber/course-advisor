@@ -1,7 +1,7 @@
 import argparse
 from backend.api import app
 from backend.api import routes
-from backend.scrape.professor import run_scrape_pids
+from backend.scrape.ratemy import run_scrape_professors, run_scrape_comments
 from backend.scrape.ucore import fetch_ucore_courses, store_courses_in_db
 
 
@@ -20,6 +20,11 @@ parser.add_argument(
     help="Scrapes all new professor ids from RateMyProfessors, storing to a local sqlite3 db",
     action="store_true",
 )
+parser.add_argument(
+    "--scrape_comments",
+    help="Scrapes all comments from RateMyProfessors, storing to a local sqlite3 db",
+    action="store_true",
+)
 
 parser.add_argument(
     "--scrape_ucores",
@@ -30,6 +35,13 @@ parser.add_argument(
 parser.add_argument(
     "--scrape_db_seed",
     help="Using the `scrape_pids` generated database, scrapes all professors, departments, courses, and comments from RateMyProfessor, clearing the database and storing the data to the postgres database",
+    action="store_true",
+)
+
+
+parser.add_argument(
+    "--scrape_ucore",
+    help="Scrapes all ucores (art, humanities, social science, etc.) from the WSU course catalog, storing to a local sqlite3 db",
     action="store_true",
 )
 
@@ -53,7 +65,10 @@ if args.app:
     app.run(port=5000, debug=True)
 
 elif args.scrape_pids:
-    run_scrape_pids()
+    run_scrape_professors()
+
+elif args.test:
+    raise NotImplementedError("Tests for the scraper are not implemented yet.")
 
 elif args.scrape_db_seed:
     print(
@@ -61,7 +76,10 @@ elif args.scrape_db_seed:
     )
     match input().lower():
         case "y":
-            run_scrape_db_seed()
+            courses = fetch_ucore_courses()
+            store_courses_in_db(courses)
+            run_scrape_professors()
+            run_scrape_comments()
         case _:
             exit()
 
@@ -72,8 +90,15 @@ elif args.scrape_ucores:
 elif args.init_db:
     courses = fetch_ucore_courses()
     store_courses_in_db(courses)
-    run_scrape_pids()
-    # Scrape comments
+    run_scrape_professors()
+    run_scrape_comments()
+
+elif args.scrape_comments:
+    run_scrape_comments()
+
+elif args.scrape_ucore:
+    courses = fetch_ucore_courses()
+    store_courses_in_db(courses)
 
 
 else:

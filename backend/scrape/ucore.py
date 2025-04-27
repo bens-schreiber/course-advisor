@@ -1,6 +1,8 @@
 from backend.models.course_ucore import CourseUCore
 import requests
-from backend.scrape.utils import _sqlite_db
+
+from backend.env import ScraperConnection
+
 
 # UCORE API endpoints
 UCORE_ENDPOINTS = {
@@ -48,7 +50,10 @@ def fetch_ucore_courses() -> list[CourseUCore]:
 
 
 def store_courses_in_db(courses: list[CourseUCore]):
-    conn = _sqlite_db()
+    if (scraper := ScraperConnection.create()) is None:
+        return
+
+    conn = scraper.db
     cursor = conn.cursor()
     cursor.execute(
         """
@@ -62,6 +67,10 @@ def store_courses_in_db(courses: list[CourseUCore]):
         )
     """
     )
+
+    # Clear the table before inserting new data
+    cursor.execute("DELETE FROM ucore_courses")
+    cursor.execute("DELETE FROM sqlite_sequence WHERE name='ucore_courses'")
 
     for course in courses:
         cursor.execute(

@@ -3,7 +3,7 @@ from datetime import datetime
 
 
 @dataclass(frozen=True)
-class _Professor:
+class Professor:
     id: int
     department_id: int
     name: str
