@@ -1,7 +1,7 @@
 from backend.models.course_ucore import CourseUCore
 import requests
 
-from backend.util import ScraperConnection
+from backend.env import ScraperConnection
 
 
 # UCORE API endpoints

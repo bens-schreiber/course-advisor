@@ -38,15 +38,16 @@ parser.add_argument(
     action="store_true",
 )
 
-parser.add_argument(
-    "--init_db",
-    help="Runs all scrape jobs, clearing the database and storing the data to the postgres database",
-    action="store_true",
-)
 
 parser.add_argument(
     "--scrape_ucore",
     help="Scrapes all ucores (art, humanities, social science, etc.) from the WSU course catalog, storing to a local sqlite3 db",
+    action="store_true",
+)
+
+parser.add_argument(
+    "--init_db",
+    help="Runs all scrape jobs, clearing the database and storing the data to the postgres database",
     action="store_true",
 )
 

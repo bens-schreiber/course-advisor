@@ -1,14 +1,14 @@
 from dataclasses import dataclass
 from datetime import datetime
+from string import Template
 import traceback
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from backend.models.comment import _Comment
-from backend.models.professor import _Professor
 from backend.models.department import Department
-from backend.util import ScraperConnection, env
+from backend.env import ScraperConnection, env
 
 
 @dataclass(frozen=True)
@@ -57,7 +57,8 @@ def run_scrape_professors():
         )
     )
 
-    last_prof_len = 0
+    profs = []
+    last_page_prof_len = 0
     department_dict = {}
     seen_profs = set()
 
@@ -108,19 +109,19 @@ def run_scrape_professors():
         )
 
     while (
-        profs := d.find_elements(By.XPATH, "//a[contains(@href, '/professor/')]")
-    ) and len(profs) > last_prof_len:
+        page_profs := d.find_elements(By.XPATH, "//a[contains(@href, '/professor/')]")
+    ) and len(page_profs) > last_page_prof_len:
         try:
-            for p in profs[last_prof_len:]:
+            for p in page_profs[last_page_prof_len:]:
                 profs.append(scrape_prof_and_department(p))
 
-            last_prof_len = len(profs)
+            last_page_prof_len = len(page_profs)
             d.find_element(By.XPATH, "//button[contains(text(), 'Show More')]").click()
             WebDriverWait(d, 10).until(
                 EC.presence_of_element_located(
                     (
                         By.XPATH,
-                        f"(//a[contains(@href, '/professor/')])[{last_prof_len+1}]",
+                        f"(//a[contains(@href, '/professor/')])[{last_page_prof_len+1}]",
                     )
                 )
             )
@@ -134,7 +135,7 @@ def run_scrape_professors():
             log.error(f"An error occurred while scraping a professor: {e}")
             traceback.print_exc()
 
-    log.info(f"Scraped {len(profs)} professor IDs.")
+    log.info(f"Scraped {len(page_profs)} professor IDs.")
     d.quit()
 
     log.info("Saving professor data to the database...")
@@ -158,7 +159,7 @@ def run_scrape_professors():
             """,
         [(prof.name, prof.department_id, prof.rate_my_query_id) for prof in profs],
     )
-    log.info(f"Saved {len(profs)} professors to the database.")
+    log.info(f"Saved {len(page_profs)} professors to the database.")
     conn.commit()
 
     conn.close()
@@ -209,40 +210,45 @@ def run_scrape_comments():
 
     log.info("Beginning comment scraping...")
     d = scraper.driver
-    url = env.scraper.rmp_url_professor.strip()
 
-    for id in ids:
-        log.info(f"Scraping comments for professor ID: {id}")
-        comments = _scrape_prof_comments(log, d, id, url)
+    try:
+        for id in ids:
+            comments = _scrape_prof_comments(log, d, id, env.scraper.rmp_url_professor)
 
-        if not comments:
-            log.warning(f"No comments found for professor ID: {id}")
-            continue
-        log.info(f"Scraped {len(comments)} comments for professor ID: {id}.")
+            if not comments:
+                log.warning(f"No comments found for professor ID: {id}")
+                continue
+            log.info(f"Scraped {len(comments)} comments for professor ID: {id}.")
 
-        cursor.executemany(
-            """
-            INSERT INTO comments (course_name, course_level, quality, difficulty, comment, date, rateMyId)
-            VALUES (?, ?, ?, ?, ?, ? , ?)
-            """,
-            [
-                (
-                    comment.course_name,
-                    comment.course_level,
-                    comment.quality,
-                    comment.difficulty,
-                    comment.comment,
-                    comment.date.isoformat(),
-                    id,  # Use the professor ID for the foreign key
-                )
-                for comment in comments
-            ],
-        )
+            cursor.executemany(
+                """
+                INSERT INTO comments (course_name, course_level, quality, difficulty, comment, date, rateMyId)
+                VALUES (?, ?, ?, ?, ?, ? , ?)
+                """,
+                [
+                    (
+                        comment.course_name,
+                        comment.course_level,
+                        comment.quality,
+                        comment.difficulty,
+                        comment.comment,
+                        comment.date.isoformat(),
+                        id,  # Use the professor ID for the foreign key
+                    )
+                    for comment in comments
+                ],
+            )
 
-    log.info("Finished run_scrape_comments.")
-    conn.commit()
-    conn.close()
-    d.quit()
+    except KeyboardInterrupt:
+        log.info("Job interrupted by user (Ctrl+C).")
+    except Exception as e:
+        log.error(f"An error occurred while scraping comments: {e}")
+        traceback.print_exc()
+    finally:
+        log.info("Finished run_scrape_comments.")
+        conn.commit()
+        conn.close()
+        d.quit()
 
 
 def li_to_comment(li) -> _Comment:
@@ -300,23 +306,22 @@ def li_to_comment(li) -> _Comment:
     )
 
 
-def _scrape_prof_comments(log, d, id, url) -> list[_Comment]:
+def _scrape_prof_comments(log, d, id, url: str) -> list[_Comment]:
     """
     Scrape all comments from a professor's page.
     """
 
-    d.get(f"{url}{id}")
-    log.info(f"Scraping comments for professor ID: {id}")
+    prof_url = url.format(id=id)
+    d.get(prof_url)
+    log.info(f"Navigated to professor page: {prof_url}")
 
     ratings_list = d.find_element(By.ID, "ratingsList")
 
     comments = []
+    prev = 0
     try:
-        prev = 0
         while True:
-            # Find all rating elements in the list
             ratings = ratings_list.find_elements(By.TAG_NAME, "li")
-            log.info(f"Found {len(ratings)} ratings so far for professor ID: {id}")
 
             # Process each rating element
             for r in ratings[prev:]:
@@ -332,27 +337,20 @@ def _scrape_prof_comments(log, d, id, url) -> list[_Comment]:
                 comments.append(comment)
                 log.debug(f"Scraped comment: {comment}")
 
-            prev = len(ratings)
-            log.info(
-                f"Loaded {prev} ratings for professor ID: {id}. Clicking 'Load More Ratings'..."
-            )
-
             # Click the "Load More Ratings" button to load additional ratings
-            WebDriverWait(d, 3).until(
+            WebDriverWait(d, 2).until(
                 EC.element_to_be_clickable(
                     (By.XPATH, "//button[contains(text(), 'Load More Ratings')]")
                 )
             ).click()
-
-    except KeyboardInterrupt:
-        log.warning("Process interrupted by user (Ctrl+C).")
+            WebDriverWait(d, 2).until(
+                lambda driver: len(driver.find_elements(By.TAG_NAME, "li")) > prev
+            )
+            prev = len(ratings)
+            log.info(f"Found {prev} ratings so far for professor ID: {id}")
     except TimeoutException:
-        log.info(f"No more ratings to load for professor ID: {id}.")
-    except Exception as e:
-        log.error(
-            f"An error occurred while scraping comments for professor ID: {id}: {e}"
-        )
-        traceback.print_exc()
-    finally:
-        log.info(f"Scraped {len(comments)} comments for professor ID: {id}.")
         return comments
+    except Exception as e:
+        raise e
+
+    return comments

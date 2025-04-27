@@ -23,6 +23,8 @@ POSTGRES_USER=admin             # Replace with your desired username
 POSTGRES_PASSWORD=postgres      # Replace with your desired password
 POSTGRES_DB=course-advisor-db
 POSTGRES_PORT=5432
+RMP_URL = "https://www.ratemyprofessors.com/search/professors/1143"
+RMP_URL_PROFESSOR = "https://www.ratemyprofessors.com/professor/{id}"
 ```
 
 ### Running the application

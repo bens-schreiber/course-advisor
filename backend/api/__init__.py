@@ -1,7 +1,7 @@
 from flask import Flask, g
 import psycopg
 
-from backend.util import PostgresConnection
+from backend.env import PostgresConnection
 
 
 # Create a Flask app
