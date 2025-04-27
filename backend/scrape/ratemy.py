@@ -1,5 +1,5 @@
-from concurrent.futures import ThreadPoolExecutor
-from dataclasses import dataclass, replace
+from dataclasses import dataclass
+import time
 import traceback
 from typing import Optional
 from bs4 import BeautifulSoup
@@ -7,7 +7,8 @@ from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
-from backend.env import ScraperConnection, env
+from backend.env import Scraper, env
+from selenium.common.exceptions import NoSuchElementException
 
 
 @dataclass(frozen=True)
@@ -85,31 +86,24 @@ def run_scrape_professors():
         cursor.execute("DELETE FROM sqlite_sequence WHERE name='professors'")
 
     def scrape_prof_and_department(
-        p, visited_prof_names, deptname_to_department
+        el: str, deptname_to_department, cursor
     ) -> Optional[_Professor]:
-        """
-        :returns returns the professor object scraped from the page. Adds the department to the database if it doesn't exist.
-        """
+        soup = BeautifulSoup(el, "html.parser")
 
-        href = p.get_attribute("href")
-        prof_id = href.split("/")[-1]
-        log.info(f"Scraping professor ID: {prof_id}")
-
-        if prof_id in visited_prof_names:
+        a_tag = soup.find("a", href=True)
+        if not a_tag:
             return None
 
-        visited_prof_names.add(prof_id)
+        href = a_tag["href"]
+        prof_id = href.split("/")[-1]
+        log.info(f"Scraping professor with ID: {prof_id}")
 
-        name_element = p.find_element(
-            By.XPATH, ".//div[contains(@class, 'CardName__StyledCardName')]"
-        )
-        department_element = p.find_element(
-            By.XPATH, ".//div[contains(@class, 'CardSchool__Department')]"
-        )
+        name_element = soup.select_one('div[class*="CardName__StyledCardName"]')
+        department_element = soup.select_one('div[class*="CardSchool__Department"]')
 
-        name = name_element.text.strip() if name_element else "Unknown Name"
+        name = name_element.get_text() if name_element else "Unknown Name"
         deptname = (
-            department_element.text.strip()
+            department_element.get_text(strip=True)
             if department_element
             else "Unknown Department"
         )
@@ -119,16 +113,111 @@ def run_scrape_professors():
             deptname_to_department[deptname] = dept
             cursor.execute(
                 """
-                            INSERT INTO departments (id, name)
-                            VALUES (?, ?)
-                            """,
+                INSERT INTO departments (id, name)
+                VALUES (?, ?)
+                """,
                 (dept.id, dept.name),
             )
         dept_id = deptname_to_department[deptname].id
 
         return _Professor(rmp_id=int(prof_id), name=name, department_id=dept_id)
 
-    if (scraper := ScraperConnection.create()) is None:
+    def scrape(
+        scraper,
+        log,
+        profs: list[_Professor],
+        deptname_to_department: dict[str, _Department],
+        cursor,
+    ):
+        """
+        NOTE: Theres around 100 departments on the WSU RateMyProfessors page.
+        Rather than scraping all 2,000 in the same driver session (which will crash due to high memory consistently after about 5 minutes),
+        we will scrape by `did` (rmps per department id) and then close the driver.
+        This `did` sometimes does not match a department, and will display either 1. All professors (over 1,000) or 2. An error saying "Our search function is currently down and our team is actively working on this issue"
+        """
+        for did in range(0, env.scraper.rmp_departments):
+            d = scraper.driver()
+            d.get(env.scraper.rmp_wsu_professor_url.format(did=did))
+            log.info(f"Scraping department with ID: {did}")
+
+            try:
+                error_element = d.find_elements(
+                    By.XPATH,
+                    "//div[contains(@class, 'SearchError__StyledSearchError')]",
+                )
+                if error_element:
+                    raise ValueError(f"Error loading department with ID {did}.")
+
+                num_professors = (
+                    WebDriverWait(d, 3)
+                    .until(
+                        EC.presence_of_element_located(
+                            (
+                                By.XPATH,
+                                "//h1[@data-testid='pagination-header-main-results']",
+                            )
+                        )
+                    )
+                    .text.split(" ")[0]
+                )
+                num_professors = int(num_professors.replace(",", ""))
+                if num_professors > 1000:
+                    raise ValueError(f"Bad deparmtent id {did}")
+
+            except Exception as e:
+                log.error(f"An exception was thrown on department {did}. Skipping: {e}")
+                d.quit()
+                continue
+
+            log.info(
+                f"Found {num_professors} professors in department {did}. Proceeding..."
+            )
+            while True:
+                try:
+                    html_elements = d.execute_script(
+                        """
+                        const elements = [...document.querySelectorAll("a[href*='/professor/']")];
+                        htmls = elements.map(e => e.outerHTML);
+
+                        elements.forEach(e => {
+                            e.replaceWith();
+                        });
+
+                        return htmls;
+                        """
+                    )
+
+                    for el in html_elements:
+                        prof = scrape_prof_and_department(
+                            el, deptname_to_department, cursor
+                        )
+                        if prof is not None:
+                            profs.append(prof)
+
+                    # The "Show More" button will disappear when there are no more professors to load. A timeout exception will be thrown.
+                    button = WebDriverWait(d, 5).until(
+                        EC.element_to_be_clickable(
+                            (By.XPATH, "//button[contains(text(), 'Show More')]")
+                        )
+                    )
+                    button.click()
+                    WebDriverWait(d, 5).until(
+                        EC.presence_of_element_located(
+                            (By.XPATH, "//a[contains(@href, '/professor/')]")
+                        )
+                    )
+
+                except TimeoutException:
+                    log.info(
+                        f"No more professors to load for department id {did}. Found {len(profs)} professors so far."
+                    )
+                    d.quit()
+                    break
+                except Exception as e:
+                    d.quit()
+                    raise e
+
+    if (scraper := Scraper.create()) is None:
         return
     log = scraper.logger
     log.info("Starting run_scrape_professors..")
@@ -138,61 +227,17 @@ def run_scrape_professors():
     cursor = conn.cursor()
     prepare_db(cursor)
 
-    log.info("Navigating to RateMyProfessors...")
-    d = scraper.driver
-    d.get(env.scraper.rmp_wsu_professor_url.strip())
-    WebDriverWait(d, 10).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//div[contains(@class, 'TeacherCard__CardInfo')]")
-        )
-    )
-    WebDriverWait(d, 10).until(
-        EC.presence_of_element_located(
-            (By.XPATH, "//a[contains(@href, '/professor/')]")
-        )
-    )
-
-    last_page_prof_len = 0
+    log.info("Scraping professors...")
     profs: list[_Professor] = []
-    deptname_to_department: dict[str, _Department] = {}
-    visited_prof_names = set()
-
-    while (
-        page_profs := d.find_elements(By.XPATH, "//a[contains(@href, '/professor/')]")
-    ) and len(page_profs) > last_page_prof_len:
-        try:
-            for p in page_profs[last_page_prof_len:]:
-                prof = scrape_prof_and_department(
-                    p, visited_prof_names, deptname_to_department
-                )
-                if prof is None:
-                    log.warn("A professor was already seen, skipping...")
-                    continue
-                profs.append(prof)
-
-            # Click the "Show More" button to load more professors
-            last_page_prof_len = len(page_profs)
-            d.find_element(By.XPATH, "//button[contains(text(), 'Show More')]").click()
-            WebDriverWait(d, 3).until(
-                EC.presence_of_element_located(
-                    (
-                        By.XPATH,
-                        f"(//a[contains(@href, '/professor/')])[{last_page_prof_len+1}]",
-                    )
-                )
-            )
-        except KeyboardInterrupt:
-            log.info("Job interrupted by user (Ctrl+C).")
-            break
-        except TimeoutException:
-            log.info("No more professors to load.")
-            break
-        except Exception as e:
-            log.error(f"An error occurred while scraping a professor: {e}")
-            traceback.print_exc()
-
-    log.info(f"Scraped {len(page_profs)} professor IDs.")
-    d.quit()
+    try:
+        scrape(scraper, log, profs, {}, cursor)
+    except KeyboardInterrupt:
+        log.info("Job interrupted by user (Ctrl+C). Saving progress and exiting...")
+    except Exception as e:
+        log.error(f"An error occurred while scraping professors: {e}")
+        traceback.print_exc()
+        conn.close()
+        return
 
     log.info("Saving professor data to the database...")
     cursor.executemany(
@@ -211,7 +256,6 @@ def run_scrape_professors():
     )
 
     conn.commit()
-    log.info(f"Saved {len(page_profs)} professors to the database.")
     conn.close()
     log.info("Finished run_scrape_professors.")
 
@@ -379,7 +423,7 @@ def run_scrape_comments():
         finally:
             return (comments, courses)
 
-    if (scraper := ScraperConnection.create()) is None:
+    if (scraper := Scraper.create()) is None:
         return
     log = scraper.logger
     log.info("Starting run_scrape_comments...")
@@ -401,11 +445,13 @@ def run_scrape_comments():
     prepare_db(cursor)
 
     log.info("Beginning comment scraping...")
-    d = scraper.driver
     name_to_course: dict[str, _Course] = {}
     inserted_course_ids = set()
     try:
         for rmp_id in rmp_ids:
+            # Chrome is a ticking fucking time bomb, new driver every time.
+            d = scraper.driver()
+
             comments, courses = scrape_comments(
                 log,
                 d,
@@ -414,6 +460,8 @@ def run_scrape_comments():
                 name_to_course,
                 inserted_course_ids,
             )
+            d.quit()
+
             if not comments:
                 log.warning(f"No comments found for professor ID: {rmp_id}")
                 continue
@@ -459,6 +507,5 @@ def run_scrape_comments():
         traceback.print_exc()
     finally:
         log.info("Finished run_scrape_comments.")
-        d.quit()
         conn.commit()
         conn.close()

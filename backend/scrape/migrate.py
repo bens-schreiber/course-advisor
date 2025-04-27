@@ -1,4 +1,4 @@
-from backend.env import PostgresConnection, ScraperConnection
+from backend.env import PostgresConnection, Scraper
 
 # TODO: Could scrape this in the future, unnecessary for now
 
@@ -10,7 +10,7 @@ def run_sqlite_pg_migration():
     if (pg := PostgresConnection.create()) is None:
         print("Failed to connect to Postgres database.")
         return
-    if (scraper := ScraperConnection.create()) is None:
+    if (scraper := Scraper.create()) is None:
         print("Failed to connect to SQLite database.")
         return
     log = scraper.logger
@@ -45,7 +45,12 @@ def run_sqlite_pg_migration():
             INSERT INTO courses (id, name, level, credits)
             VALUES (%s, %s, %s, %s)
             """,
-            (course[0], course[1], course[2], course[3]),
+            (
+                course[0],
+                course[1],
+                course[2],
+                3,
+            ),  # TODO: We don't know what the course credits are... 3 sounds good!
         )
 
     log.info("Inserting departments into Postgres database...")

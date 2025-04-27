@@ -11,7 +11,7 @@ app = Flask(__name__)
 @app.before_request
 def before_request():
     """Establish the connection before each request."""
-    g.db = PostgresConnection.create()
+    g.db = PostgresConnection.create().db
 
 
 @app.teardown_request
