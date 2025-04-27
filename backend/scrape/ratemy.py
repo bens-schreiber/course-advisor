@@ -448,10 +448,15 @@ def run_scrape_comments():
     name_to_course: dict[str, _Course] = {}
     inserted_course_ids = set()
     try:
-        for rmp_id in rmp_ids:
+        for i, rmp_id in enumerate(rmp_ids):
+            # % of the way done
+            percent_done = (i + 1) / len(rmp_ids) * 100
+            log.info(
+                f"Scraping comments for professor ID {rmp_id} ({i + 1}/{len(rmp_ids)}) - {percent_done:.2f}% done."
+            )
+
             # Chrome is a ticking fucking time bomb, new driver every time.
             d = scraper.driver()
-
             comments, courses = scrape_comments(
                 log,
                 d,
