@@ -19,12 +19,13 @@ Requirements:
 
 Then, you'll want to run `touch .env` in the project root and add the following environment variables:
 ```bash
-POSTGRES_USER=admin             # Replace with your desired username
-POSTGRES_PASSWORD=postgres      # Replace with your desired password
+POSTGRES_USER=admin
+POSTGRES_PASSWORD=postgres
 POSTGRES_DB=course-advisor-db
 POSTGRES_PORT=5432
-RMP_URL = "https://www.ratemyprofessors.com/search/professors/1143"
-RMP_URL_PROFESSOR = "https://www.ratemyprofessors.com/professor/{id}"
+RMP_PROFESSOR_DEPARTMENT_URL = "https://www.ratemyprofessors.com/search/professors/1143?q=*&did={did}"
+RMP_PROFESSOR_URL = "https://www.ratemyprofessors.com/professor/{id}"
+RMP_DEPARTMENTS=100
 ```
 
 ### Running the application
@@ -33,7 +34,17 @@ RMP_URL_PROFESSOR = "https://www.ratemyprofessors.com/professor/{id}"
 3. In another terminal, `cd frontend` and run `npm run dev` to start the frontend
 
 ### Running the scraper
-TODO
+
+The scraper is compromised of several different parts, all of them storing their progress in a local sqlite database. The scraper is run in the following order:
+1. `python -m backend --scrape-ucore`
+2. `python -m backend --scrape-profs`
+3. `python -m backend --scrape-comments`
+
+And then finally to update the database with the scraped data:
+4. `python -m backend --migrate`
+
+TODO: A job to update the database instead of fully migrating it.
+
 
 ### Postgres
 View postgres manually in the terminal:

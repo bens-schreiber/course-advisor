@@ -30,8 +30,9 @@ class PostgresEnv:
 
 @dataclass(frozen=True)
 class ScraperEnv:
-    rmp_wsu_professor_url: str
-    rmp_url_professor: str
+    rmp_professor_department_url: str
+    rmp_professor_url: str
+    rmp_departments: int
 
 
 @dataclass(frozen=True)
@@ -40,7 +41,7 @@ class Env:
     scraper: ScraperEnv
 
 
-def require_env(var_name: str, default: Optional[str] = None) -> str:
+def require_env(var_name: str, default: Optional[object] = None) -> str:
     value = os.getenv(var_name, default)
     if value is None:
         raise EnvironmentError(
@@ -49,7 +50,7 @@ def require_env(var_name: str, default: Optional[str] = None) -> str:
     return value
 
 
-load_dotenv()
+load_dotenv(override=True)
 env = Env(
     postgres=PostgresEnv(
         user=require_env("POSTGRES_USER"),
@@ -59,8 +60,9 @@ env = Env(
         host=require_env("POSTGRES_HOST", "localhost"),
     ),
     scraper=ScraperEnv(
-        rmp_wsu_professor_url=require_env("RMP_URL"),
-        rmp_url_professor=require_env("RMP_URL_PROFESSOR"),
+        rmp_professor_department_url=require_env("RMP_PROFESSOR_DEPARTMENT_URL"),
+        rmp_professor_url=require_env("RMP_PROFESSOR_URL"),
+        rmp_departments=int(require_env("RMP_DEPARTMENTS")),
     ),
 )
 
@@ -91,21 +93,38 @@ class PostgresConnection:
             return None
 
 
-class ScraperConnection:
+class Scraper:
     db: sqlite3.Connection
-    driver: webdriver.Chrome
     logger: logging.Logger
 
     @staticmethod
-    def __driver() -> webdriver.Chrome:
+    def driver() -> webdriver.Chrome:
         """Create and return a Chrome webdriver instance with iframe blocking."""
         options = Options()
         options.page_load_strategy = "eager"
-        options.add_argument("--headless")  # Run in headless mode
+        options.add_argument("--headless=new")  # Run in headless mode
         options.add_argument("--disable-extensions")
         options.add_argument("--disable-popup-blocking")
         options.add_argument("--disable-site-isolation-trials")
         options.add_argument("--blink-settings=block-iframe=true")  # Block iframes
+        options.add_argument("--no-sandbox")
+        options.add_argument("--disable-gpu")
+        options.add_argument("--disable-background-networking")
+        options.add_argument("--disable-background-timer-throttling")
+        options.add_argument("--disable-renderer-backgrounding")
+        options.add_argument(
+            "--disable-features=NetworkService,NetworkServiceInProcess"
+        )
+        options.add_argument("--blink-settings=imagesEnabled=false")
+        options.add_argument("--disable-plugins")
+        options.add_argument("--process-per-site")
+        prefs = {
+            "profile.managed_default_content_settings.images": 2,
+            "profile.default_content_setting_values.notifications": 2,
+            "profile.default_content_setting_values.media_stream": 2,
+            "profile.default_content_setting_values.plugins": 2,
+        }
+        options.add_experimental_option("prefs", prefs)
 
         return webdriver.Chrome(options=options)
 
@@ -115,22 +134,18 @@ class ScraperConnection:
         return sqlite3.connect("scrape.db")
 
     @classmethod
-    def create(cls) -> Optional["ScraperConnection"]:
+    def create(cls) -> Optional["Scraper"]:
         """Create a new ScraperInstance with a Chrome driver and SQLite database."""
         logger = logging.getLogger(SCRAPER_LOGGER_ID)
         try:
-            driver = cls.__driver()
             db = cls.__sqlite_db()
         except Exception as e:
             logger.error(f"Error creating ScraperInstance: {e}")
-            if driver:
-                driver.quit()
             if db:
                 db.close()
             return None
 
         instance = cls()
-        instance.driver = driver
         instance.db = db
         instance.logger = logger
         return instance

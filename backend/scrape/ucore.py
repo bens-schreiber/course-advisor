@@ -1,7 +1,7 @@
 from backend.models.course_ucore import CourseUCore
 import requests
 
-from backend.env import ScraperConnection
+from backend.env import Scraper
 
 
 # UCORE API endpoints
@@ -50,7 +50,7 @@ def fetch_ucore_courses() -> list[CourseUCore]:
 
 
 def store_courses_in_db(courses: list[CourseUCore]):
-    if (scraper := ScraperConnection.create()) is None:
+    if (scraper := Scraper.create()) is None:
         return
 
     conn = scraper.db
