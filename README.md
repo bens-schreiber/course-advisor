@@ -23,6 +23,8 @@ POSTGRES_USER=admin             # Replace with your desired username
 POSTGRES_PASSWORD=postgres      # Replace with your desired password
 POSTGRES_DB=course-advisor-db
 POSTGRES_PORT=5432
+RMP_URL = "https://www.ratemyprofessors.com/search/professors/1143"
+RMP_URL_PROFESSOR = "https://www.ratemyprofessors.com/professor/{id}"
 ```
 
 ### Running the application
@@ -31,27 +33,7 @@ POSTGRES_PORT=5432
 3. In another terminal, `cd frontend` and run `npm run dev` to start the frontend
 
 ### Running the scraper
-TODO: Link to Google Drive / One Drive for a postgres db dump 
-
-To scrape all professor ids:
-```bash
-python -m backend --scrape_pids
-```
-
-To scrape all ucores:
-```bash
-python -m backend --scrape_ucores
-```
-
-To scrape all professors, courses, comments, departments and assign ucores (previous scrape jobs must be completed):
-```bash
-python -m backend --scrape_db_seed
-```
-
-To run all of these jobs in one command, populating the initial database:
-```bash
-python -m backend --init_db
-```
+TODO
 
 ### Postgres
 View postgres manually in the terminal:
