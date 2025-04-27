@@ -62,8 +62,7 @@ def store_courses_in_db(courses: list[CourseUCore]):
             course_id TEXT NOT NULL,
             ucore_designation TEXT NOT NULL,
             course_name TEXT NOT NULL,
-            credits TEXT NOT NULL,
-            created_at TEXT NOT NULL
+            credits TEXT NOT NULL
         )
     """
     )
@@ -76,15 +75,14 @@ def store_courses_in_db(courses: list[CourseUCore]):
         cursor.execute(
             """
             INSERT INTO ucore_courses (
-                course_id, ucore_designation, course_name, credits, created_at
-            ) VALUES (?, ?, ?, ?, ?)
+                course_id, ucore_designation, course_name, credits
+            ) VALUES (?, ?, ?, ?)
         """,
             (
                 course.course_id,
                 course.ucore_designation,
                 course.course_name,
                 course.credits,
-                course.created_at.isoformat(),
             ),
         )
 
