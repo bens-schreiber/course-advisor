@@ -30,8 +30,8 @@ class PostgresEnv:
 
 @dataclass(frozen=True)
 class ScraperEnv:
-    rmp_wsu_professor_url: str
-    rmp_url_professor: str
+    rmp_professor_department_url: str
+    rmp_professor_url: str
     rmp_departments: int
 
 
@@ -60,8 +60,8 @@ env = Env(
         host=require_env("POSTGRES_HOST", "localhost"),
     ),
     scraper=ScraperEnv(
-        rmp_wsu_professor_url=require_env("RMP_URL"),
-        rmp_url_professor=require_env("RMP_URL_PROFESSOR"),
+        rmp_professor_department_url=require_env("RMP_PROFESSOR_DEPARTMENT_URL"),
+        rmp_professor_url=require_env("RMP_PROFESSOR_URL"),
         rmp_departments=int(require_env("RMP_DEPARTMENTS")),
     ),
 )

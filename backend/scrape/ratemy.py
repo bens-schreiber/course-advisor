@@ -137,7 +137,7 @@ def run_scrape_professors():
         """
         for did in range(0, env.scraper.rmp_departments):
             d = scraper.driver()
-            d.get(env.scraper.rmp_wsu_professor_url.format(did=did))
+            d.get(env.scraper.rmp_professor_department_url.format(did=did))
             log.info(f"Scraping department with ID: {did}")
 
             try:
@@ -456,7 +456,7 @@ def run_scrape_comments():
                 log,
                 d,
                 rmp_id,
-                env.scraper.rmp_url_professor,
+                env.scraper.rmp_professor_url,
                 name_to_course,
                 inserted_course_ids,
             )
