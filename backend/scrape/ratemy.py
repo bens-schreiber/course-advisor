@@ -25,20 +25,31 @@ class _Department:
 
 @dataclass(frozen=True)
 class _Comment:
-    course_name: str
-    course_level: int
     quality: float
     difficulty: float
     comment: str
+    course_id: int
 
-    def level_frm_name(s):
+
+@dataclass(frozen=True)
+class _Course:
+    id: int
+    name: str
+    level: int
+    found_from_rmp_id: int
+
+    def level_name_frm_str(s) -> tuple[Optional[int], Optional[str]]:
+        """
+        :returns the level of the course from the course name.
+        """
         number = ""
         for char in s:
             if char.isdigit():
                 number += char
             elif number:
                 break
-        return int(number) if number else None
+
+        return (int(number), s.replace(number, "").strip()) if number else (None, None)
 
 
 def run_scrape_professors():
@@ -214,27 +225,44 @@ def run_scrape_comments():
     def prepare_db(cursor):
         cursor.execute(
             """
-            CREATE TABLE IF NOT EXISTS comments (
+            CREATE TABLE IF NOT EXISTS courses (
                 id INTEGER PRIMARY KEY AUTOINCREMENT,
                 course_name TEXT,
-                course_level TEXT,
+                course_level INTEGER,
+                found_from_rmp_id INTEGER,
+                FOREIGN KEY (found_from_rmp_id) REFERENCES professors(rmp_id)
+            )
+            """
+        )
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS comments (
+                id INTEGER PRIMARY KEY AUTOINCREMENT,
                 quality REAL,
                 difficulty REAL,
                 comment TEXT,
                 rmp_id INTEGER,
-                FOREIGN KEY (rmp_id) REFERENCES professors(rmp_id)
+                course_id INTEGER,
+                FOREIGN KEY (rmp_id) REFERENCES professors(rmp_id),
+                FOREIGN KEY (course_id) REFERENCES courses(id)
             )
             """
         )
+
         cursor.execute("DELETE FROM comments")
         cursor.execute("DELETE FROM sqlite_sequence WHERE name='comments'")
+        cursor.execute("DELETE FROM courses")
+        cursor.execute("DELETE FROM sqlite_sequence WHERE name='courses'")
 
-    def scrape_comments(log, d, id, url: str) -> list[_Comment]:
+    def scrape_comments(
+        log, d, id, url, name_to_course, inserted_course_ids
+    ) -> tuple[list[_Comment], list[_Course]]:
         """
         Scrape all comments from a professor's page.
+        :returns a list of comments found, and new courses found.
         """
 
-        def li_to_comment(li_html) -> Optional[_Comment]:
+        def li_to_comment(li_html) -> Optional[tuple[_Comment, _Course]]:
             """
             Convert a list item (HTML string) to a comment object using BeautifulSoup.
             """
@@ -255,7 +283,28 @@ def run_scrape_comments():
                 return None
 
             # Extract the course name text
-            course_name = course_name_element.text.strip()
+            course_name = course_name_element.text.strip().upper()
+            if course_name not in name_to_course:
+                level, name = _Course.level_name_frm_str(course_name)
+                if level is None or not name or level > 600:
+                    log.warning(
+                        f"Ill formatted course name: {course_name}, skipping..."
+                    )
+                    # TODO: This algorithm could be far more sophisticated. For now, skip it.
+                    # If level was missing:
+                    # - Check the professor's other courses for a match
+                    # If name was missing:
+                    # - Map the department to a course name, ie "Computer Science Department" to "CPT_S"
+                    return None
+
+                log.info(f"Adding new course: {course_name} from prof {id}")
+                name_to_course[course_name] = _Course(
+                    id=len(name_to_course),
+                    name=course_name,
+                    level=level,
+                    found_from_rmp_id=id,
+                )
+            course_id = name_to_course[course_name].id
 
             # Extract the quality rating
             quality_element = soup.select_one(
@@ -274,12 +323,14 @@ def run_scrape_comments():
             comment = comment_element.text if comment_element else ""
 
             # Return a _Comment object with the extracted data
-            return _Comment(
-                course_name=course_name,
-                course_level=_Comment.level_frm_name(course_name),
-                quality=float(quality),
-                difficulty=float(difficulty),
-                comment=comment,
+            return (
+                _Comment(
+                    quality=float(quality),
+                    difficulty=float(difficulty),
+                    comment=comment,
+                    course_id=course_id,
+                ),
+                name_to_course[course_name],
             )
 
         prof_url = url.format(id=id)
@@ -288,20 +339,24 @@ def run_scrape_comments():
 
         ratings_list = d.find_element(By.ID, "ratingsList")
         comments = []
+        courses = []
         prev = 0
         try:
             while (ratings := ratings_list.find_elements(By.TAG_NAME, "li")) and len(
                 ratings
             ) > prev:
 
-                # Doing a find_by XPath becomes costly as each call is an HTTP request,
-                # so we will just use bs4 to parse the HTML and extract the comments,
-                # and then use ThreadPoolExecutor to process them in parallel.
-                li_htmls = [li.get_attribute("outerHTML") for li in ratings[prev:]]
-                with ThreadPoolExecutor(max_workers=8) as executor:
-                    results = list(filter(None, executor.map(li_to_comment, li_htmls)))
-
-                comments.extend([c for c in results if c is not None])
+                # TODO: Consider multithreading this, just have to deal with the dict and set not being thread-safe...
+                for li in ratings[prev:]:
+                    html = li.get_attribute("outerHTML")
+                    result = li_to_comment(html)
+                    if result is None:
+                        continue
+                    comment, course = result
+                    comments.append(comment)
+                    if course.id not in inserted_course_ids:
+                        courses.append(course)
+                        inserted_course_ids.add(course.id)
 
                 # Click the "Load More Ratings" button to load additional ratings
                 WebDriverWait(d, 2).until(
@@ -317,12 +372,12 @@ def run_scrape_comments():
 
         except TimeoutException:
             log.info("No more ratings to load.")
-            return comments
+            return (comments, courses)
         except Exception as e:
             log.error(f"An error occurred while scraping comments: {e}")
             raise e
         finally:
-            return comments
+            return (comments, courses)
 
     if (scraper := ScraperConnection.create()) is None:
         return
@@ -347,26 +402,50 @@ def run_scrape_comments():
 
     log.info("Beginning comment scraping...")
     d = scraper.driver
+    name_to_course: dict[str, _Course] = {}
+    inserted_course_ids = set()
     try:
         for rmp_id in rmp_ids:
-            comments = scrape_comments(log, d, rmp_id, env.scraper.rmp_url_professor)
+            comments, courses = scrape_comments(
+                log,
+                d,
+                rmp_id,
+                env.scraper.rmp_url_professor,
+                name_to_course,
+                inserted_course_ids,
+            )
             if not comments:
                 log.warning(f"No comments found for professor ID: {rmp_id}")
                 continue
 
             cursor.executemany(
                 """
-                INSERT INTO comments (course_name, course_level, quality, difficulty, comment, rmp_id)
-                VALUES (?, ?, ?, ?, ?, ?)
+                INSERT INTO courses (id, course_name, course_level, found_from_rmp_id)
+                VALUES (?, ?, ?, ?)
                 """,
                 [
                     (
-                        comment.course_name,
-                        comment.course_level,
+                        course.id,
+                        course.name,
+                        course.level,
+                        course.found_from_rmp_id,
+                    )
+                    for course in courses
+                ],
+            )
+
+            cursor.executemany(
+                """
+                INSERT INTO comments (quality, difficulty, comment, rmp_id, course_id)
+                VALUES (?, ?, ?, ?, ?)
+                """,
+                [
+                    (
                         comment.quality,
                         comment.difficulty,
                         comment.comment,
                         rmp_id,
+                        comment.course_id,
                     )
                     for comment in comments
                 ],
@@ -374,7 +453,7 @@ def run_scrape_comments():
             log.info(f"Scraped {len(comments)} comments for professor ID: {rmp_id}.")
 
     except KeyboardInterrupt:
-        log.info("Job interrupted by user (Ctrl+C).")
+        log.info("Job interrupted by user (Ctrl+C). Saving progress and exiting...")
     except Exception as e:
         log.error(f"An error occurred while scraping comments: {e}")
         traceback.print_exc()

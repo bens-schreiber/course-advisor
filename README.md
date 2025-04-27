@@ -33,27 +33,7 @@ RMP_URL_PROFESSOR = "https://www.ratemyprofessors.com/professor/{id}"
 3. In another terminal, `cd frontend` and run `npm run dev` to start the frontend
 
 ### Running the scraper
-TODO: Link to Google Drive / One Drive for a postgres db dump 
-
-To scrape all professor ids:
-```bash
-python -m backend --scrape_pids
-```
-
-To scrape all ucores:
-```bash
-python -m backend --scrape_ucores
-```
-
-To scrape all professors, courses, comments, departments and assign ucores (previous scrape jobs must be completed):
-```bash
-python -m backend --scrape_db_seed
-```
-
-To run all of these jobs in one command, populating the initial database:
-```bash
-python -m backend --init_db
-```
+TODO
 
 ### Postgres
 View postgres manually in the terminal:
