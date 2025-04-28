@@ -1,5 +1,24 @@
 # Washington State University Course Advisor
 
+WSU Course Advisor is a search application with two specific queries for students:
+1. What are the top professors for my course
+2. What are the top classes (and subsequent top professor) to take for my class requirements (department, credit, university core credit)
+
+The aim is this search engine will aid students in booking their next semesters courses.
+
+In order to rank professors, we need a lot of data, being professors, classes, departments, and of course ratings for each class a professor teaches. RateMyProfessor provides this information, but only in a manner of `Professer -> Class`, which is unable to suit our needs as we want an inverse relation of `Class -> Professor` and `Requirements -> Class, Professor`. Thus, we employ web scraping to grab all of the data from RateMyProfessor, and then create this inverse lookup.
+
+<img width="1440" alt="Screenshot 2025-04-27 at 5 19 12 PM" src="https://github.com/user-attachments/assets/e9788fb5-7118-477b-a1f5-9078c4b32536" />
+
+
+
+This project was created as a semester project for CPTS 451. There are several TODOs we did not get to implement due to time constraints:
+- [ ] Create an automated update for the web scraper. We currently only have a way to seed data (scrape all of RMP, make a database from it), but would like to have a scheduled job to fetch new results and insert them into the database.
+- [ ] Associate courses with UCores. We currently scrape ucores, but the process of fuzzy searching a RMP course title (which are very different from one another, for example `CPTS 121` could be: `CPT 121` `121` `CPT` `CS 121` etc...) is complex and went out of scope for this project.
+- [ ] Use an AI model to give a professor overview, course overview. We store all comments in our database, so an AI summary wouldn't be a stretch
+- [ ] Implement a more sophisticated ranking algorithm. Our algorithm currently has constant weights employed, and doesn't fully consider many edge cases in rating (if a professor has 1 rating, that shouldn't necessarily be better than one with hundreds)
+
+
 ## Running
 
 Requirements:
@@ -74,7 +93,8 @@ Given
 - $P = (wta, C)$ = a professor with a $wta$ and set of courses $C$
  - $w_q + w_d + w_{wta} = 1 $
 
-$$ R(P,A) = \frac{\sum_{(q,d) \in A} (q \cdot w_q + (5-d) \cdot w_d) + 5 \cdot P.wta \cdot w_{wta}}{w_q + w_d + w_{wta}} 
+$$ 
+R(P,A) = \frac{\sum_{(q,d) \in A} (q \cdot w_q + (5-d) \cdot w_d) + 5 \cdot P.wta \cdot w_{wta}}{w_q + w_d + w_{wta}} 
 $$
 
 It would follow that
