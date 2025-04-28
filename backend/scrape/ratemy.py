@@ -1,5 +1,4 @@
 from dataclasses import dataclass
-import time
 import traceback
 from typing import Optional
 from bs4 import BeautifulSoup
@@ -8,7 +7,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 from selenium.common.exceptions import TimeoutException
 from backend.env import Scraper, env
-from selenium.common.exceptions import NoSuchElementException
+import re
+from typing import Optional, Tuple
 
 
 @dataclass(frozen=True)
@@ -39,18 +39,23 @@ class _Course:
     level: int
     found_from_rmp_id: int
 
-    def level_name_frm_str(s) -> tuple[Optional[int], Optional[str]]:
+    def level_name_frm_str(s: str) -> Tuple[Optional[int], Optional[str]]:
         """
-        :returns the level of the course from the course name.
+        :returns the level of the course from the course name,
+        only if it follows the <NAME><NUMBER> format.
         """
-        number = ""
-        for char in s:
-            if char.isdigit():
-                number += char
-            elif number:
-                break
+        # Regex pattern for <NAME><NUMBER> format (NAME followed by NUMBER)
+        pattern = r"^([A-Za-z]+)(\d+)$"
 
-        return (int(number), s.replace(number, "").strip()) if number else (None, None)
+        match = re.match(pattern, s)
+
+        if match:
+            # Extract name and number
+            name = match.group(1)
+            number = int(match.group(2))
+            return number, name
+        else:
+            return None, None
 
 
 def run_scrape_professors():
