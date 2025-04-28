@@ -6,7 +6,7 @@ WSU Course Advisor is a search application with two specific queries for student
 
 The aim is this search engine will aid students in booking their next semesters courses.
 
-In order to rank professors, we need a lot of data, being professors, classes, departments, and of course ratings for each class a professor teaches. RateMyProfessor provides this information, but only in a manner of `Professer -> Class`, which is unable to suit our needs as we want an inverse relation of `Class -> Professor` and `Requirements -> Class, Professor`. Thus, we employ web scraping to grab all of the data from RateMyProfessor, and then create this inverse lookup.
+In order to rank professors, we need a lot of data, being professors, classes, departments, and of course ratings for each class a professor teaches. RateMyProfessor provides this information, but only in a manner of `Professer -> Class`, which is unable to suit our needs as we want an inverse relation of `Class -> Professor` and `Requirements -> Class, Professor`. We employ web scraping to grab all of the data from RateMyProfessor, and then create this inverse lookup.
 
 <img width="1440" alt="Screenshot 2025-04-27 at 5 19 12 PM" src="https://github.com/user-attachments/assets/e9788fb5-7118-477b-a1f5-9078c4b32536" />
 
@@ -54,15 +54,21 @@ RMP_DEPARTMENTS=100
 
 ### Running the scraper
 
-The scraper is compromised of several different parts, all of them storing their progress in a local sqlite database. The scraper is run in the following order:
+The scraper is compromised of several different parts, all of them storing their progress in a local sqlite database.
+
+Scrape data is stored in `scrape.db`, a local SQLite3 database. This is included in our git repository, and is pre-filled with all of the data. To migrate this data into the postgres db, without running the entire scraper again (which takes a long time), you can run the following command:
+
+
+```bash
+python -m backend --migrate
+```
+
+Or, to run the scraper again and source new data, run the following commands in this sequence:
+
 1. `python -m backend --scrape-ucore`
 2. `python -m backend --scrape-profs`
 3. `python -m backend --scrape-comments`
-
-And then finally to update the database with the scraped data:
 4. `python -m backend --migrate`
-
-TODO: A job to update the database instead of fully migrating it.
 
 
 ### Postgres
@@ -98,6 +104,8 @@ R(P,A) = \frac{\sum_{(q,d) \in A} (q \cdot w_q + (5-d) \cdot w_d) + 5 \cdot P.wt
 $$
 
 It would follow that
+
+
 $$
 R(P) = \frac{\sum_{A \in P.C} R(P, A)}{|P.C|}
 $$
