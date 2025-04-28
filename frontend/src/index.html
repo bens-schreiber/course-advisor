@@ -1,0 +1,404 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>WSU Course Advisor</title>
+    <link href="/styles.css" rel="stylesheet" />
+    <script
+      src="https://unpkg.com/htmx.org@2.0.4"
+      integrity="sha384-HGfztofotfshcF7+8n44JQL2oJmowVChPTg48S+jvZoztPfvwD79OC/LTtG6dMp+"
+      crossorigin="anonymous"
+    ></script>
+    <script src="//unpkg.com/alpinejs" defer></script>
+    <script src="https://code.iconify.design/2/2.0.3/iconify.min.js"></script>
+  </head>
+  <body>
+    <header>
+      <div class="flex items-center justify-between p-5">
+        <div class="flex">
+          <img
+            src="/assets/wsu.svg"
+            alt="Washington State University Logo"
+            class="logo"
+            width="80"
+            height="80"
+          />
+
+          <!-- vertical divider-->
+          <div class="border-l-2 border-gray-400 h-24 mx-3"></div>
+
+          <div class="flex flex-col justify-center items-start ml-5">
+            <h2 class="font-light ml-1 text-sm">WASHINGTON STATE UNIVERSITY</h2>
+            <h1 class="text-4xl font-bold">Course Advisor</h1>
+          </div>
+        </div>
+
+        <nav>
+          <ul class="flex space-x-4 ml-auto text-xl">
+            <li>
+              <a href="/" class="text-blue-500 hover:text-blue-700">Home</a>
+            </li>
+            <li>
+              <span>|</span>
+            </li>
+            <li>
+              <a href="/about" class="text-blue-500 hover:text-blue-700">
+                About
+              </a>
+            </li>
+            <li>
+              <span>|</span>
+            </li>
+            <li>
+              <a href="/contact" class="text-blue-500 hover:text-blue-700">
+                Contact
+              </a>
+            </li>
+          </ul>
+        </nav>
+      </div>
+    </header>
+
+    <main class="grid grid-cols-2 gap-12 p-5 mt-10">
+      <section
+        x-data="{ 
+        courses: [], 
+        results: [],
+        selectedCourse: null,
+        searchText: '',
+      }"
+        x-init="fetch('/api/v1/courses/search').then(r => r.json()).then(data => courses = data)"
+        class="flex flex-col gap-3"
+      >
+        <h1 class="text-2xl font-medium">Find top professors for a class</h1>
+
+        <div class="flex w-full">
+          <input
+            list="course-list"
+            x-model="searchText"
+            type="text"
+            placeholder="Enter a class name..."
+            @change="selectedCourse = courses.find(c => c.name === searchText)"
+            class="w-full p-4 border border-gray-300 rounded-lg shadow-sm focus:outline-none focus:ring-2 focus:ring-blue-500"
+          />
+
+          <button
+            :disabled="!selectedCourse"
+            @click="if(selectedCourse) fetch(`/api/v1/top_professors?course_id=${selectedCourse.id}`).then(r => r.json()).then(data => results = data)"
+            class="bg-blue-500 text-white font-bold rounded-md p-5 hover:bg-blue-600 disabled:bg-gray-400 ml-1"
+          >
+            Go!
+          </button>
+        </div>
+
+        <!-- Data in the dropdown-->
+        <datalist id="course-list">
+          <template x-for="course in courses" :key="course.id">
+            <option :value="course.name"></option>
+          </template>
+        </datalist>
+
+        <!-- Results -->
+        <div x-show="results.length > 0">
+          <ul>
+            <template x-for="professor in results" :key="professor.id">
+              <li
+                class="flex items-start bg-white shadow-md rounded-lg p-6 mb-6 w-full items-center justify-center"
+              >
+                <!-- Course Rating -->
+                <div
+                  class="p-5 rounded-lg mr-6"
+                  :class="{
+                  'bg-red-500': professor.course_rating >= 0 && professor.course_rating < 1,
+                  'bg-orange-500': professor.course_rating >= 1 && professor.course_rating < 2,
+                  'bg-yellow-500': professor.course_rating >= 2 && professor.course_rating < 3,
+                  'bg-green-200': professor.course_rating >= 3 && professor.course_rating < 4,
+                  'bg-green-500': professor.course_rating >= 4 && professor.course_rating < 5,
+                  'bg-green-700': professor.course_rating === 5.0
+                }"
+                >
+                  <span
+                    class="font-bold text-2xl"
+                    x-text="professor.course_rating"
+                  ></span>
+                </div>
+
+                <div class="w-full">
+                  <!-- Professor Name -->
+                  <h2
+                    class="text-2xl font-bold mb-4"
+                    x-text="professor.name"
+                  ></h2>
+
+                  <!-- Divider -->
+                  <hr class="w-full border-t border-gray-300 mb-6" />
+
+                  <!-- Stats Section -->
+                  <div class="flex space-x-10">
+                    <ul class="space-y-4">
+                      <li class="flex items-center space-x-2">
+                        <span
+                          class="iconify text-lg"
+                          data-icon="mdi:office-building"
+                        ></span>
+                        <span
+                          class="text-gray-500"
+                          x-text="professor.department"
+                        ></span>
+                      </li>
+                      <li class="flex items-center space-x-2">
+                        <span
+                          class="iconify text-lg"
+                          data-icon="mdi:star"
+                        ></span>
+                        <span
+                          class="text-gray-500"
+                          x-text="'Overall Rating: ' + professor.overall_rating"
+                        ></span>
+                      </li>
+                    </ul>
+                    <ul class="space-y-4">
+                      <li class="flex items-center space-x-2">
+                        <span
+                          class="iconify text-lg"
+                          data-icon="mdi:thumb-up"
+                        ></span>
+                        <span
+                          class="text-gray-500"
+                          x-text="'RMP Quality: ' + professor.rmp_quality"
+                        ></span>
+                      </li>
+                      <li class="flex items-center space-x-2">
+                        <span
+                          class="iconify text-lg"
+                          data-icon="mdi:thumb-down"
+                        ></span>
+                        <span
+                          class="text-gray-500"
+                          x-text="'RMP Difficulty: ' + professor.rmp_difficulty"
+                        ></span>
+                      </li>
+                    </ul>
+                  </div>
+                </div>
+              </li>
+            </template>
+          </ul>
+        </div>
+      </section>
+
+      <section>
+        <h1 class="text-2xl font-medium">Find top classes by professor</h1>
+        <div
+          x-data="{ 
+          departments: [], 
+          ucores: [],
+          credits: [1, 2, 3, 4],
+          classLevels: [100, 200, 300, 400],
+          selectedDepartment: null,
+          selectedUcore: null,
+          selectedCredits: null,
+          selectedClassLevel: null,
+          topClasses: [],
+          searchPerformed: false
+        }"
+          x-init="
+          Promise.all([
+            fetch('/api/v1/departments').then(r => r.json()),
+            fetch('/api/v1/ucores').then(r => r.json())
+          ]).then(([deptData, ucoreData]) => {
+            departments = deptData;
+            ucores = ucoreData;
+          })"
+        >
+          <form class="space-y-4" aria-labelledby="search-classes-form">
+            <fieldset class="border p-4 rounded-md">
+              <!-- Department Selection -->
+              <div class="mb-4">
+                <label for="department-select" class="block text-sm font-medium"
+                  >Department:</label
+                >
+                <select
+                  id="department-select"
+                  x-model="selectedDepartment"
+                  class="w-full p-2 border rounded-md"
+                  aria-required="true"
+                >
+                  <option value="">Select Department</option>
+                  <template x-for="dept in departments" :key="dept.id">
+                    <option :value="dept.id" x-text="dept.name"></option>
+                  </template>
+                </select>
+              </div>
+
+              <!-- Credits Selection -->
+              <div class="mb-4">
+                <label for="credits-select" class="block text-sm font-medium"
+                  >Credits:</label
+                >
+                <select
+                  id="credits-select"
+                  x-model="selectedCredits"
+                  class="w-full p-2 border rounded-md"
+                  aria-required="true"
+                >
+                  <option value="">Select Credits</option>
+                  <template x-for="credit in credits" :key="credit">
+                    <option :value="credit" x-text="credit"></option>
+                  </template>
+                </select>
+              </div>
+
+              <!-- Class Level Selection -->
+              <div class="mb-4">
+                <label for="level-select" class="block text-sm font-medium"
+                  >Class Level:</label
+                >
+                <select
+                  id="level-select"
+                  x-model="selectedClassLevel"
+                  class="w-full p-2 border rounded-md"
+                  aria-required="true"
+                >
+                  <option value="">Select Class Level</option>
+                  <template x-for="level in classLevels" :key="level">
+                    <option :value="level" x-text="level"></option>
+                  </template>
+                </select>
+              </div>
+
+              <!-- Ucore Selection (Optional) -->
+              <div class="mb-4">
+                <label for="ucore-select" class="block text-sm font-medium"
+                  >UCORE (Optional):</label
+                >
+                <select
+                  id="ucore-select"
+                  x-model="selectedUcore"
+                  class="w-full p-2 border rounded-md"
+                >
+                  <option value="">Any UCORE</option>
+                  <template x-for="ucore in ucores" :key="ucore.id">
+                    <option :value="ucore.id" x-text="ucore.name"></option>
+                  </template>
+                </select>
+              </div>
+
+              <!-- Search Button -->
+              <button
+                type="button"
+                @click="
+                  let url = `/api/v1/top_classes?credits=${selectedCredits}&class_level=${selectedClassLevel}&department_id=${selectedDepartment}`;
+                  if(selectedUcore) url += `&ucore=${selectedUcore}`;
+                  
+                  fetch(url)
+                    .then(r => r.json())
+                    .then(data => {
+                      topClasses = data;
+                      searchPerformed = true;
+                    })
+                "
+                :disabled="!selectedDepartment || !selectedCredits || !selectedClassLevel"
+                class="w-full py-2 bg-blue-500 text-white rounded-md"
+              >
+                Search
+              </button>
+            </fieldset>
+          </form>
+
+          <!-- Results Section -->
+          <section
+            x-show="searchPerformed && topClasses.length > 0"
+            class="mt-4"
+          >
+            <ul>
+              <template x-for="course in topClasses" :key="course.id">
+                <li
+                  class="flex items-start bg-white shadow-md rounded-lg p-6 mb-6 w-full items-center justify-center"
+                >
+                  <!-- Rating -->
+                  <div
+                    class="p-5 rounded-lg mr-6"
+                    :class="{
+                      'bg-red-500': course.professor.course_rating >= 0 && course.professor.course_rating < 1,
+                      'bg-orange-500': course.professor.course_rating >= 1 && course.professor.course_rating < 2,
+                      'bg-yellow-500': course.professor.course_rating >= 2 && course.professor.course_rating < 3,
+                      'bg-green-200': course.professor.course_rating >= 3 && course.professor.course_rating < 4,
+                      'bg-green-500': course.professor.course_rating >= 4 && course.professor.course_rating < 5,
+                      'bg-green-700': course.professor.course_rating === 5.0
+                    }"
+                  >
+                    <span
+                      class="font-bold text-2xl"
+                      x-text="course.professor.course_rating"
+                    ></span>
+                  </div>
+
+                  <div class="w-full">
+                    <!-- Course Name -->
+                    <h2
+                      class="text-2xl font-bold mb-4"
+                      x-text="course.name"
+                    ></h2>
+
+                    <!-- Divider -->
+                    <hr class="w-full border-t border-gray-300 mb-6" />
+
+                    <!-- Stats Section -->
+                    <div class="flex space-x-10 w-full">
+                      <ul>
+                        <li class="flex items-center space-x-2">
+                          <span
+                            class="iconify text-lg"
+                            data-icon="mdi:account"
+                          ></span>
+                          <span
+                            class="text-gray-500"
+                            x-text="'Professor: ' + course.professor.name"
+                          ></span>
+                        </li>
+                        <li class="flex items-center space-x-2">
+                          <span
+                            class="iconify text-lg"
+                            data-icon="mdi:star"
+                          ></span>
+                          <span
+                            class="text-gray-500"
+                            x-text="'Overall Rating: ' + course.professor.overall_rating"
+                          ></span>
+                        </li>
+                      </ul>
+                      <ul>
+                        <li class="flex space-x-2">
+                          <span
+                            class="iconify text-lg"
+                            data-icon="mdi:thumb-up"
+                          ></span>
+                          <span
+                            class="text-gray-500"
+                            x-text="'RMP Quality: ' + course.professor.rmp_quality"
+                          ></span>
+                        </li>
+                        <li class="flex space-x-2">
+                          <span
+                            class="iconify text-lg"
+                            data-icon="mdi:thumb-down"
+                          ></span>
+                          <span
+                            class="text-gray-500"
+                            x-text="'RMP Difficulty: ' + course.professor.rmp_difficulty"
+                          ></span>
+                        </li>
+                      </ul>
+                    </div>
+                  </div>
+                </li>
+              </template>
+            </ul>
+          </section>
+        </div>
+      </section>
+    </main>
+  </body>
+</html>
